@@ -194,6 +194,7 @@
                 <button class="lobby-game-btn" onclick="enterRoom('auction')">🔨<br>100票拍賣會<br><span style="font-size:12px; color:#aaa;">(沉沒成本)</span></button>
                 <button class="lobby-game-btn" onclick="enterSlot()" style="border-color: #ffd700;">🎰<br>瘋狂老虎機<br><span style="font-size:12px; color:#ffd700;">(累積彩金)</span></button>
                 <button class="lobby-game-btn" onclick="enterHorseArea()" style="border-color: #0f0;">🏇<br>百花王賽馬<br><span style="font-size:12px; color:#0f0;">(每10分鐘開跑)</span></button> 
+                <button class="lobby-game-btn" onclick="enterStockArea()" style="border-color: #0ff;">📈<br>地下股市<br><span style="font-size:12px; color:#0ff;">(高風險投資)</span></button>
             </div>
             </div> 
             <div id="horse-area" class="panel hidden" style="text-align: center;">
@@ -222,6 +223,31 @@
             </div>
             
             <button onclick="leaveHorseArea()" style="background: #333; width: 100%; max-width: 400px; margin-top: 15px; padding: 10px; color: #ccc; border: none; cursor: pointer;">返回大廳</button>
+        </div>
+        <div id="stock-area" class="panel hidden" style="text-align: center;">
+            <h2 style="color: #0ff;">📈 學園地下交易所</h2>
+            <p style="color: #aaa; margin-bottom: 20px;">每 30 分鐘更新一次股價。<br>低買高賣，或者一夜破產！</p>
+            
+            <div style="background: #111; border: 2px solid #0ff; padding: 20px; border-radius: 10px; max-width: 400px; margin: 0 auto; text-align: left;">
+                <label style="color: #fff; font-size: 18px; display: block; margin-bottom: 5px;">選擇交易標的：</label>
+                <select id="stock-select" style="font-size: 16px; padding: 8px; background: #222; color: #fff; border: 1px solid #555; margin-bottom: 15px; width: 100%;">
+                    <option value="A">📊 A股 - 學生會公債 (穩定型)</option>
+                    <option value="B">📊 B股 - 百花王建設 (成長型)</option>
+                    <option value="C">📊 C股 - 家畜互助會 (潛力型)</option>
+                    <option value="D">📊 D股 - 地下賭場集團 (投機型)</option>
+                    <option value="E">📊 E股 - 夢子概念股 (妖股)</option>
+                </select>
+                
+                <label style="color: #fff; font-size: 18px; display: block; margin-bottom: 5px;">交易數量 (股)：</label>
+                <input type="number" id="stock-amount" value="1" min="1" style="font-size: 18px; padding: 8px; background: #222; color: #0ff; border: 1px solid #555; margin-bottom: 15px; width: 100%; box-sizing: border-box;">
+                
+                <div style="display: flex; gap: 10px;">
+                    <button onclick="tradeStock('buy')" style="background: #060; color: #fff; width: 50%; font-size: 18px; padding: 10px; border: none; cursor: pointer; font-weight: bold;">買入 (Buy)</button>
+                    <button onclick="tradeStock('sell')" style="background: #800; color: #fff; width: 50%; font-size: 18px; padding: 10px; border: none; cursor: pointer; font-weight: bold;">賣出 (Sell)</button>
+                </div>
+            </div>
+            
+            <button onclick="leaveStockArea()" style="background: #333; width: 100%; max-width: 400px; margin-top: 15px; padding: 10px; color: #ccc; border: none; cursor: pointer;">返回大廳</button>
         </div>
         <div id="slot-area" class="panel hidden" style="text-align: center;">
             <div class="jackpot-board" style="background: #000; border: 2px solid #ff0; color: #f00; font-family: monospace; font-size: 28px; padding: 10px; margin-bottom: 15px;">
@@ -839,6 +865,31 @@ function setUI(id, html) {
             
             // 清空輸入框
             document.getElementById('horse-bet-amount').value = '';
+        }
+        // 🚪 進入股市
+        function enterStockArea() {
+            document.getElementById('lobby-area').classList.add('hidden');
+            document.getElementById('stock-area').classList.remove('hidden');
+        }
+
+        // 🚪 離開股市
+        function leaveStockArea() {
+            document.getElementById('stock-area').classList.add('hidden');
+            document.getElementById('lobby-area').classList.remove('hidden');
+        }
+
+        // 📈 買賣股票下單
+        function tradeStock(action) {
+            const stockId = document.getElementById('stock-select').value;
+            const amt = document.getElementById('stock-amount').value;
+            
+            if(!amt || amt <= 0) { 
+                alert("❌ 請輸入有效的交易數量！"); 
+                return; 
+            }
+            
+            // 傳送給後端 app.py 的 trade_stock 事件
+            socket.emit('trade_stock', { action: action, stock_id: stockId, amount: amt });
         }
 
         // 🎰 老虎機拉桿
