@@ -335,6 +335,17 @@
     </div>
 
     <script>
+        // 🔴 XSS 防護：防止玩家名字夾帶惡意代碼
+function esc(s) {
+    if (!s) return "";
+    return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":"&#39;"})[m]);
+}
+
+// 🔴 安全 UI 更新：防止元素不存在時導致程式崩潰
+function setUI(id, html) {
+    const el = document.getElementById(id);
+    if (el) el.innerHTML = html;
+}
         const socket = io();
         let mySid = null;
         let isMuted = false;
@@ -406,13 +417,13 @@
 
         socket.on('login_success', d => {
             localStorage.setItem('kakegurui_token', d.token);
-            localStorage.setItem('kakegurui_name', d.name);
+            localStorage.setItem('kakegurui_name', esc(d.name));
             document.getElementById('login-area').classList.add('hidden');
             document.getElementById('game-area').classList.add('hidden');
             document.getElementById('btn-leave').classList.add('hidden');
             
             document.getElementById('lobby-area').classList.remove('hidden');
-            document.getElementById('lobby-name').innerText = d.name;
+            document.getElementById('lobby-name').innerText = esc(d.name);
             document.getElementById('lobby-chips').innerText = '¥' + d.chips.toLocaleString();
             document.getElementById('lobby-debt').innerText = '¥' + d.debt.toLocaleString();
             
@@ -541,7 +552,7 @@
                     if (!me.exile_vote) {
                         document.getElementById('tax-exile').classList.remove('hidden'); taxTitle.innerText = "🔥 流放投票";
                         let sel = document.getElementById('exile-target'); sel.innerHTML = '';
-                        for(let sid in state.players) { if(sid !== mySid && state.players[sid].status === 'ACTIVE') { sel.innerHTML += `<option value="${sid}">${state.players[sid].name}</option>`; } }
+                        for(let sid in state.players) { if(sid !== mySid && state.players[sid].status === 'ACTIVE') { sel.innerHTML += `<option value="${sid}">${esc(state.players[sid].name)}</option>`; } }
                     } else { taxTitle.innerText = "⏳ 等待其他人投票..."; }
                 } else { taxTitle.innerText = "🎮 等待操作"; }
                 
@@ -621,8 +632,8 @@
                     handDisplay = `<div style="margin-bottom: 5px; display: flex; align-items: center;">${p.active_hand === 'main' && state.phase === 'ACTION' && p.status === 'ACTION' ? '👉 ' : ''}<span style="margin-right:10px;">主牌:</span> <div>${renderCards(p.hand)}</div> <span style="font-size:12px; color:#888; margin-left:10px;">${p.main_status==='BUSTED'?'(爆牌)':''}</span></div>`;
                     if (p.split_hand && p.split_hand.length > 0) handDisplay += `<div style="display: flex; align-items: center;">${p.active_hand === 'split' && state.phase === 'ACTION' && p.status === 'ACTION' ? '👉 ' : ''}<span style="margin-right:10px;">拆牌:</span> <div>${renderCards(p.split_hand)}</div> <span style="font-size:12px; color:#888; margin-left:10px;">${p.split_status==='BUSTED'?'(爆牌)':''}</span></div>`;
                     
-                    if(!isMe && !['ELIMINATED', 'LEFT', 'OBSERVING'].includes(p.status) && state.phase === 'ALLIANCE') allyContainer.innerHTML += `<button class="ally-btn" onclick="sendAlly('${sid}')">與 ${p.name} 結盟</button>`;
-                    if(!isMe && !['ELIMINATED', 'LEFT', 'OBSERVING', 'BUSTED'].includes(p.status) && state.phase === 'ACTION') reportContainer.innerHTML += `<button class="report-btn" onclick="sendReport('${sid}')" ${me.has_reported ? 'disabled' : ''}>👉 檢舉 ${p.name}</button>`;
+                    if(!isMe && !['ELIMINATED', 'LEFT', 'OBSERVING'].includes(p.status) && state.phase === 'ALLIANCE') allyContainer.innerHTML += `<button class="ally-btn" onclick="sendAlly('${sid}')">與 ${esc(p.name)} 結盟</button>`;
+                    if(!isMe && !['ELIMINATED', 'LEFT', 'OBSERVING', 'BUSTED'].includes(p.status) && state.phase === 'ACTION') reportContainer.innerHTML += `<button class="report-btn" onclick="sendReport('${sid}')" ${me.has_reported ? 'disabled' : ''}>👉 檢舉 ${esc(p.name)}</button>`;
                 } else if (state.type === 'tax') {
                     let taxStatus = (state.phase === 'TAXING') ? (p.tax_paid >= 0 ? '<span style="color:#0f0;">✅已申報</span>' : '<span style="color:#f55;">⏳思考中</span>') : '';
                     let voteStatus = (state.phase === 'VOTING_EXILE') ? (p.exile_vote ? '<span style="color:#0f0;">🗳️已投票</span>' : '<span style="color:#f55;">⏳猶豫中</span>') : '';
@@ -636,7 +647,7 @@
 
                 list.innerHTML += `
                     <div id="player-row-${sid}" style="position: relative; border-bottom: 1px solid #222; padding: 10px; display: flex; justify-content: space-between;" class="${isMe ? 'me' : ''}">
-                        <div>ID: ${p.id} | <strong style="color:${s_color}">${p.name}</strong>${online_status}</div>
+                        <div>ID: ${p.id} | <strong style="color:${s_color}">${esc(p.name)}</strong>${online_status}</div>
                         <div>手邊籌碼: ${chipsDisplay} ${debtDisplay}</div>
                         <div>${handDisplay}</div>
                     </div>`;
