@@ -550,7 +550,15 @@ function setUI(id, html) {
             document.getElementById('lobby-name').innerText = esc(d.name);
             document.getElementById('lobby-chips').innerText = '¥' + d.chips.toLocaleString();
             document.getElementById('lobby-debt').innerText = '¥' + d.debt.toLocaleString();
-            
+            // --- 插入以下代碼來同步左上角資訊 ---
+        const gName = document.getElementById('global-name');
+        const gChips = document.getElementById('global-chips');
+        const gDebt = document.getElementById('global-debt');
+
+        if (gName) gName.innerText = esc(d.name);
+        if (gChips) gChips.innerText = d.chips.toLocaleString();
+        if (gDebt) gDebt.innerText = d.debt.toLocaleString();
+        // ----------------------------------
             // 回到大廳時切換回大廳主題
             switchTheme('lobby');
         });
