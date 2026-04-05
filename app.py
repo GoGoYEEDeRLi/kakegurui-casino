@@ -13,8 +13,7 @@ SUITS = ['♠', '♥', '♦', '♣']
 RANKS = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A']
 VALUES = {'2':2, '3':3, '4':4, '5':5, '6':6, '7':7, '8':8, '9':9, '10':10, 'J':10, 'Q':10, 'K':10, 'A':11}
 
-# 🎰 全域老虎機彩金池
-jackpot_pool = 10000000 
+
 # ==========================================
 # 📊 股市與賽馬 全域變數
 # ==========================================
@@ -33,6 +32,8 @@ stocks = {
 db_players = {}   
 sid_map = {}      
 
+# 🎰 全域老虎機彩金池
+jackpot_pool = 10000000 
 # 🚪 房間隔離系統與遊戲狀態
 games = {
     'blackjack': { 'type': 'blackjack', 'phase': 'WAITING', 'round': 1, 'players': {}, 'dealer_hand': [], 'deck': [], 'pending_swaps': {} },
@@ -56,7 +57,6 @@ def handle_loan(data):
     
     # 🔴 關鍵：這行會把最新的錢傳回前端，觸發你剛寫好的「同步左上角資訊」
     emit('login_success', {'token': tok, 'name': p['name'], 'chips': p['chips'], 'debt': p['debt']})
-    
     # 給個聊天室通知，增加儀式感
     socketio.emit('chat_msg', {'name': '💸 債務通知', 'msg': f"{p['name']} 簽下了 ¥{amt:,} 的借據，祝你好運..."}, broadcast=True)
 # ==========================================
@@ -67,7 +67,6 @@ def handle_loan(data):
 def handle_slot_spin():
     global jackpot_pool
     sid = request.sid
-    # 透過 sid 找到該玩家的 token，再從 db_players 抓錢包
     tok = sid_map.get(sid, {}).get('token')
     p = db_players.get(tok)
     
@@ -81,7 +80,7 @@ def handle_slot_spin():
     # 💸 扣錢並注入 10% 到彩金池
     p['chips'] -= cost
     jackpot_pool += int(cost * 0.1)
-
+    
     # 🎲 決定結果 (0-5)
     r = [random.randint(0, 5) for _ in range(3)]
     is_win = (r[0] == r[1] == r[2])
@@ -96,12 +95,15 @@ def handle_slot_spin():
     else:
         msg = "沒中獎，加油！"
 
-    # 📢 傳送結果與更新大廳顯示
+    # 📢 1. 更新前端的個人錢包 (讓你立刻看到錢被扣)
+    emit('login_success', {'token': tok, 'name': p['name'], 'chips': p['chips'], 'debt': p['debt']})
+    
+    # 📢 2. 更新前端的老虎機畫面與最新獎池
     emit('slot_result', {'reels': r, 'win': is_win, 'msg': msg})
-    socketio.emit('update_jackpot', {'pool': jackpot_pool}, broadcast=True)
-    emit('login_success', {
-        'token': tok, 'name': p['name'], 
-        'chips': p['chips'], 'debt': p['debt']
+    
+    # 📢 3. 全服廣播最新獎池 (統一使用 'jackpot' 作為 key)
+    socketio.emit('update_jackpot', {'jackpot': jackpot_pool}, broadcast=True)
+    emit('login_success', {'token': tok, 'name': p['name'], 'chips': p['chips'], 'debt': p['debt']
     })
 
 def calculate_hand(hand):
