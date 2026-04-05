@@ -12,7 +12,9 @@ SUITS = ['♠', '♥', '♦', '♣']
 RANKS = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A']
 VALUES = {'2':2, '3':3, '4':4, '5':5, '6':6, '7':7, '8':8, '9':9, '10':10, 'J':10, 'Q':10, 'K':10, 'A':11}
 
-# 🟢 放在全域（最上面），這樣彩金才會一直累積
+import random # 建議放在檔案最上方
+
+# 🟢 放在全域最上方
 jackpot_pool = 10000000 
 
 @socketio.on('slot_spin')
@@ -21,19 +23,23 @@ def handle_slot_spin():
     sid = request.sid
     p = players.get(sid)
     
-    cost = 1000000 # 每次 100 萬
-    if p['chips'] < cost:
-        return # 錢不夠直接結束
+    # 1. 安全檢查
+    if not p: return
+    
+    cost = 1000000
+    if p.get('chips', 0) < cost:
+        emit('chat_msg', {'name': '系統', 'msg': '❌ 籌碼不足 100 萬！'})
+        return
 
-    # 💸 扣錢：10% 進彩金池
+    # 2. 扣錢邏輯
     p['chips'] -= cost
+    # 10% 抽稅進彩金池
     jackpot_pool += int(cost * 0.1)
 
-    # 🎲 決定結果：伺服器產出 3 個隨機數
-    import random
+    # 3. 亂數決定結果 (0-5)
     r = [random.randint(0, 5) for _ in range(3)]
     
-    # 判斷是否三個數字一樣 (中獎)
+    # 4. 中獎判定
     is_win = (r[0] == r[1] == r[2])
     win_amt = 0
     if is_win:
@@ -41,16 +47,17 @@ def handle_slot_spin():
         p['chips'] += win_amt
         jackpot_pool -= win_amt
 
-    # 📢 把結果發回給前端
+    # 5. 回傳結果給該位玩家
     emit('slot_result', {
         'reels': r, 
         'win': is_win, 
-        'msg': f"🎊 大獎！贏得 ¥{win_amt:,}" if is_win else "沒中獎..."
+        'msg': f"🎊 大獎！贏得 ¥{win_amt:,}" if is_win else "沒中獎，加油！"
     })
     
-    # 📢 廣播最新彩金給所有人
-    emit('update_jackpot', {'pool': jackpot_pool}, broadcast=True)
-    # 📢 更新玩家錢包顯示
+    # 6. 廣播最新彩金給所有人 (重要！)
+    socketio.emit('update_jackpot', {'pool': jackpot_pool}, broadcast=True)
+    
+    # 7. 更新玩家的大廳資產數值
     emit('login_success', p)
 # 🌍 全域錢包系統
 db_players = {}  
