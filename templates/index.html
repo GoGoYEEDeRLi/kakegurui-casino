@@ -6,7 +6,6 @@
     <title>百花王學園 - 絕望深淵</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
     <style>
-        /* 注意：這裡移除了原本寫死的 url('/static/bg.jpg')，交給 JavaScript 決定 */
         body { background-color: #050505; background-repeat: no-repeat; background-position: center center; background-attachment: fixed; background-size: cover; color: #aaa; font-family: 'Noto Sans TC', sans-serif; margin: 0; padding: 20px; transition: background-image 1s ease-in-out; }
         .hidden { display: none !important; }
         .container { max-width: 900px; margin: auto; padding: 20px; border: 1px solid #333; background: rgba(17, 17, 17, 0.85); backdrop-filter: blur(5px); position: relative;}
@@ -36,7 +35,6 @@
         .top-btn { position: absolute; top: 15px; background: #222; border-color: #555; color: #888; font-size: 12px;}
         .top-btn:hover { background: #111; color: #fff; border-color: #fff;}
         .leave-btn:hover { color: red; border-color: red;}
-        .global-recharge { position: absolute; top: 15px; left: 15px; background: rgba(0,20,0,0.8); border: 1px solid #0f0; padding: 5px; border-radius: 5px; text-align: center; z-index: 10;}
         
         .playing-card { display: inline-block; width: 35px; height: 50px; background: #fff; border-radius: 4px; margin: 0 4px; text-align: center; line-height: 1.1; font-size: 18px; font-weight: bold; box-shadow: 2px 2px 5px rgba(0,0,0,0.8); padding-top: 4px; vertical-align: middle; font-family: 'Arial', sans-serif;}
         .card-back { background: repeating-linear-gradient(45deg, #800, #800 5px, #400 5px, #400 10px); color: transparent;}
@@ -61,23 +59,15 @@
         .lobby-game-btn:hover { background: #500; box-shadow: 0 0 20px #f00; transform: scale(1.05);}
         .lobby-game-btn:disabled { background: #111; border-color: #333; color: #555; box-shadow: none; cursor: not-allowed;}
         
-        /* 🔴 縮小左上角借錢區，解決擁擠問題 */
-        .global-recharge { 
-            position: fixed; top: 10px; left: 10px; z-index: 1000;
-            background: rgba(0, 40, 0, 0.9); border: 1px solid #0f0; padding: 5px;
-            transform: scale(0.75); transform-origin: top left;
-        }
-
-/* 🎰 累積彩金老虎機樣式 */
+        /* 🎰 累積彩金老虎機樣式 */
         .jackpot-board { background: #000; border: 2px solid #ff0; color: #f00; font-family: monospace; font-size: 24px; padding: 10px; margin: 10px 0; text-align: center; border-radius: 5px; }
         .reel { width: 60px; height: 60px; background: #fff; color: #000; font-size: 40px; display: inline-block; line-height: 60px; margin: 5px; border-radius: 5px; font-weight: bold; }
 
-        /* 🔴 這裡新增：解決左上角太擠的問題 */
+        /* 🔴 解決左上角太擠的問題 */
         .global-recharge { 
             position: fixed; top: 10px; left: 10px; z-index: 1000;
             background: rgba(0, 40, 0, 0.9); border: 1px solid #0f0; padding: 5px;
-            /* 縮小 20% 並以左上角為中心縮放 */
-            transform: scale(0.8); transform-origin: top left;
+            transform: scale(0.8); transform-origin: top left; border-radius: 5px;
         }
 
         /* 📱 手機版響應式設計 */
@@ -86,10 +76,10 @@
             .container { padding: 10px; border: none; margin-top: 5px; }
             h1 { font-size: 22px; margin-top: 60px; }
             .lobby-game-btn { width: 100%; display: block; margin: 10px 0; }
-            /* 手機版可以再縮小一點點 */
             .global-recharge { transform: scale(0.7); } 
         }
-    </style> </head>
+    </style>
+</head>
 <body onload="switchTheme('login')">
     <audio id="bgm" loop></audio>
     <audio id="sfx-deal"><source src="/static/deal.mp3" type="audio/mpeg"></audio>
@@ -119,7 +109,7 @@
                     </ul>
                 </details>
                 <details style="border-left-color: #f55;">
-                    <summary style="color: #f55;">🔨 【100票拍賣會】(沉沒成本)</summary>
+                    <summary style="color: #f55;">🔨 【100票拍மைப்பு會】(沉沒成本)</summary>
                     <ul>
                         <li><strong>財閥莊家</strong>：全場最有錢的人強制成為莊家。莊家每局提供 100 票當拍賣品。</li>
                         <li><strong>全付費盲拍</strong>：輸入競標票數，時間到價高者得標 (贏得100票)。</li>
@@ -145,33 +135,27 @@
         <button id="btn-mute" class="top-btn" style="right: 85px;" onclick="toggleMute()">🔊 音效開</button>
         <button id="btn-leave" class="top-btn leave-btn hidden" style="right: 175px;" onclick="returnToLobby()">🚪 退回大廳</button>
         
-       <div id="btn-recharge-global" class="global-recharge hidden">
-            <span style="color:#0f0; font-size:12px;">💸 借錢 (剩 <span id="recharge-count">3</span> 次)</span><br>
-            <div class="step-container">
-                <button class="step-btn" onclick="adjustAmt('loan', -1000000)">-</button>
-                <div class="step-val" id="loan-display">¥1,000,000</div>
-                <button class="step-btn" onclick="adjustAmt('loan', 1000000)">+</button>
-            </div><br>
-            <button onclick="requestLoan()" style="background:#060; border:none; padding: 5px 20px; margin-top:5px; width: 100%;">確定借貸</button>
-      </div> <div class="global-recharge" style="position: fixed; top: 10px; left: 10px; z-index: 1000; background: rgba(0, 40, 0, 0.9); border: 1px solid #0f0; padding: 8px; border-radius: 5px; transform: scale(0.85); transform-origin: top left;">
+        <div class="global-recharge">
             <span id="global-name" style="color: #0f0; font-weight: bold;">尚未登入</span> | 
             💰 <span id="global-chips" style="color: #ffd700;">0</span> | 
             🩸 <span id="global-debt" style="color: #f55;">0</span>
             <button class="recharge-btn" onclick="document.getElementById('loan-modal').classList.remove('hidden')" style="margin-left: 10px; background: #800; color: #fff; border: 1px solid #f00; cursor: pointer; padding: 2px 8px;">借貸</button>
         </div>
 
-        <div id="loan-modal" class="modal hidden" style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 2000; background: #111; border: 2px solid #f00; padding: 20px; text-align: center; border-radius: 10px;">
-            <h2 style="color: #f00; margin-top: 0;">向莊家借貸</h2>
-            <p style="color: #0f0; font-size: 14px;">剩餘額度: <span id="recharge-count">3</span> 次</p>
-            
-            <div class="step-container" style="display: flex; justify-content: center; align-items: center; gap: 15px; margin: 20px 0;">
-                <button class="step-btn" onclick="adjustAmt('loan', -1000000)" style="font-size: 20px; padding: 5px 15px;">-</button>
-                <div class="step-val" id="loan-display" style="font-size: 24px; color: #fff; font-weight: bold;">¥1,000,000</div>
-                <button class="step-btn" onclick="adjustAmt('loan', 1000000)" style="font-size: 20px; padding: 5px 15px;">+</button>
+        <div id="loan-modal" class="modal-overlay hidden" style="z-index: 2000;">
+            <div class="modal-box">
+                <h2 style="color: #f00; margin-top: 0;">向莊家借貸</h2>
+                <p style="color: #0f0; font-size: 14px;">(借款金額無上限，但小心破產)</p>
+                
+                <div class="step-container" style="display: flex; justify-content: center; align-items: center; gap: 15px; margin: 20px 0;">
+                    <button class="step-btn" onclick="adjustAmt('loan', -1000000)" style="font-size: 20px; padding: 5px 15px;">-</button>
+                    <div class="step-val" id="loan-display" style="font-size: 24px; color: #fff; font-weight: bold;">¥1,000,000</div>
+                    <button class="step-btn" onclick="adjustAmt('loan', 1000000)" style="font-size: 20px; padding: 5px 15px;">+</button>
+                </div>
+                
+                <button onclick="requestLoan()" style="background: #f00; color: #fff; width: 100%; padding: 10px; font-size: 18px; border: none; cursor: pointer;">簽下借據</button>
+                <button onclick="document.getElementById('loan-modal').classList.add('hidden')" style="background: #333; color: #fff; width: 100%; padding: 10px; font-size: 18px; border: none; cursor: pointer; margin-top: 10px;">取消</button>
             </div>
-            
-            <button onclick="requestLoan(); document.getElementById('loan-modal').classList.add('hidden')" style="background: #f00; color: #fff; width: 100%; padding: 10px; font-size: 18px; border: none; cursor: pointer;">簽下借據</button>
-            <button onclick="document.getElementById('loan-modal').classList.add('hidden')" style="background: #333; color: #fff; width: 100%; padding: 10px; font-size: 18px; border: none; cursor: pointer; margin-top: 10px;">取消</button>
         </div>
 
         <div id="login-area" class="panel" style="text-align: center;">
@@ -196,8 +180,9 @@
                 <button class="lobby-game-btn" onclick="enterHorseArea()" style="border-color: #0f0;">🏇<br>百花王賽馬<br><span style="font-size:12px; color:#0f0;">(每10分鐘開跑)</span></button> 
                 <button class="lobby-game-btn" onclick="enterStockArea()" style="border-color: #0ff;">📈<br>地下股市<br><span style="font-size:12px; color:#0ff;">(高風險投資)</span></button>
             </div>
-            </div> 
-            <div id="horse-area" class="panel hidden" style="text-align: center;">
+        </div> 
+
+        <div id="horse-area" class="panel hidden" style="text-align: center;">
             <h2 style="color: #0f0;">🏇 百花王虛擬賽馬場</h2>
             <p style="color: #aaa; margin-bottom: 20px;">每 10 分鐘自動開跑。<br>未中獎的籌碼將 <span style="color:#f00;">全數沒收並注入老虎機彩金池</span>！</p>
             
@@ -224,6 +209,7 @@
             
             <button onclick="leaveHorseArea()" style="background: #333; width: 100%; max-width: 400px; margin-top: 15px; padding: 10px; color: #ccc; border: none; cursor: pointer;">返回大廳</button>
         </div>
+
         <div id="stock-area" class="panel hidden" style="text-align: center;">
             <h2 style="color: #0ff;">📈 學園地下交易所</h2>
             <p style="color: #aaa; margin-bottom: 20px;">每 30 分鐘更新一次股價。<br>低買高賣，或者一夜破產！</p>
@@ -259,6 +245,7 @@
             
             <button onclick="leaveStockArea()" style="background: #333; width: 100%; max-width: 400px; margin-top: 15px; padding: 10px; color: #ccc; border: none; cursor: pointer;">返回大廳</button>
         </div>
+
         <div id="slot-area" class="panel hidden" style="text-align: center;">
             <div class="jackpot-board" style="background: #000; border: 2px solid #ff0; color: #f00; font-family: monospace; font-size: 28px; padding: 10px; margin-bottom: 15px;">
                 💰 JACKPOT: <span id="jackpot-display">¥10,000,000</span>
@@ -450,47 +437,59 @@
             if (el) el.innerHTML = html;
         }
 
-        // 💰 3. 借貸系統功能
-        function adjustAmt(type, change) {
-            if (type === 'loan') {
-                // 修改全域物件 amounts 中的數值
-                amounts['loan'] += change;
-                
-                // 限制最少借 100 萬
-                if (amounts['loan'] < 1000000) amounts['loan'] = 1000000; 
-                
-                // 更新畫面顯示
-                const display = document.getElementById('loan-display');
-                if (display) {
-                    display.innerText = "¥" + amounts['loan'].toLocaleString();
+        // 💰 3. 統一的金額加減功能 (解決重複函數的問題)
+        function adjustAmt(key, delta) {
+            // 決定上下限
+            let minLimit = (key === 'raise' || key === 'bid') ? 0 : 1000000;
+            let maxLimit = (key === 'bid') ? 2000 : 20000000; 
+            
+            let newVal = amounts[key] + delta;
+            if (newVal >= minLimit && newVal <= maxLimit) {
+                amounts[key] = newVal;
+                // 更新顯示
+                let displayStr = (key === 'bid') ? amounts[key] + ' 票' : '¥' + amounts[key].toLocaleString();
+                let displayEl = document.getElementById(key + '-display');
+                if (displayEl) {
+                    displayEl.innerText = displayStr;
                 }
             }
-            // 這裡之後也可以擴充 spec, raise 等其他類型的金額調整
         }
 
+        // 借錢功能
         function requestLoan() {
-            // 向後端發送借錢請求
             socket.emit('request_loan', { amount: amounts['loan'] });
-            
-            // 關閉借貸視窗
             const modal = document.getElementById('loan-modal');
             if (modal) { 
                 modal.classList.add('hidden'); 
             }
-
-            // 如果有全域借貸按鈕也隱藏
-            const rechargeBtn = document.getElementById('btn-recharge-global');
-            if (rechargeBtn) rechargeBtn.classList.add('hidden');
         }
 
-        // --- 這裡銜接你原本後續的 login(), switchTheme() 等函數 ---
-        // 🎨 主題切換器 (魔法就在這裡！)
+        // 🚪 登入功能 (幫你找回來了！)
+        function login() {
+            const nameInput = document.getElementById('name-in');
+            if (!nameInput || !nameInput.value.trim()) {
+                alert('❌ 請輸入你的代號，才能進入百花王學園！');
+                return;
+            }
+            socket.emit('login', { name: nameInput.value.trim() });
+        }
+
+        // 🔊 音效切換 (幫你找回來了！)
+        function toggleMute() {
+            isMuted = !isMuted;
+            const bgm = document.getElementById('bgm');
+            if (bgm) bgm.muted = isMuted;
+            const btn = document.getElementById('btn-mute');
+            if (btn) btn.innerText = isMuted ? '🔇 音效關' : '🔊 音效開';
+        }
+
+        // 🎨 主題切換器
         function switchTheme(theme) {
             if (currentTheme === theme) return;
             currentTheme = theme;
 
-            let bgImage = '/static/bg_lobby.jpg'; // 如果找不到圖片，你可以把名字改回 bg.jpg
-            let bgmFile = '/static/bgm_lobby.mp3'; // 如果找不到音樂，你可以把名字改回 bgm.mp3
+            let bgImage = '/static/bg_lobby.jpg'; 
+            let bgmFile = '/static/bgm_lobby.mp3';
 
             if (theme === 'blackjack') {
                 bgImage = '/static/bg_blackjack.jpg';
@@ -503,34 +502,23 @@
                 bgmFile = '/static/bgm_auction.mp3';
             }
 
-            // 1. 動態更換網頁背景
+            // 動態更換網頁背景
             document.body.style.backgroundImage = `url('${bgImage}')`;
 
-            // 2. 動態更換背景音樂 (並保持原本的播放/靜音狀態)
+            // 動態更換背景音樂
             let bgm = document.getElementById('bgm');
-            let wasPlaying = !bgm.paused;
-            bgm.src = bgmFile;
-            bgm.load(); // 載入新音樂
-            
-            // 如果玩家沒有靜音，且本來就在播放（或者是剛登入），就開始播新音樂
-            if (!isMuted && (wasPlaying || theme === 'lobby')) {
-                 bgm.play().catch(e => console.log("等待玩家互動後播放", e));
+            if(bgm) {
+                let wasPlaying = !bgm.paused;
+                bgm.src = bgmFile;
+                bgm.load(); 
+                if (!isMuted && (wasPlaying || theme === 'lobby')) {
+                     bgm.play().catch(e => console.log("等待互動播放音樂", e));
+                }
             }
         }
 
         function showRules() { document.getElementById('rules-modal').classList.remove('hidden'); }
         function hideRules() { document.getElementById('rules-modal').classList.add('hidden'); }
-
-        function adjustAmt(key, delta) {
-            let minLimit = (key === 'raise' || key === 'bid') ? 0 : 1000000;
-            let maxLimit = (key === 'bid') ? 2000 : 20000000; 
-            let newVal = amounts[key] + delta;
-            if (newVal >= minLimit && newVal <= maxLimit) {
-                amounts[key] = newVal;
-                let displayStr = (key === 'bid') ? amounts[key] + ' 票' : '¥' + amounts[key].toLocaleString();
-                document.getElementById(key + '-display').innerText = displayStr;
-            }
-        }
 
         window.onload = () => {
             const savedName = localStorage.getItem('kakegurui_name');
@@ -544,6 +532,7 @@
             log.scrollTop = log.scrollHeight;
         });
 
+        // 🔴 登入成功的事件 (幫你把大括號關起來了！)
         socket.on('login_success', d => {
             localStorage.setItem('kakegurui_token', d.token);
             localStorage.setItem('kakegurui_name', esc(d.name));
@@ -555,18 +544,18 @@
             document.getElementById('lobby-name').innerText = esc(d.name);
             document.getElementById('lobby-chips').innerText = '¥' + d.chips.toLocaleString();
             document.getElementById('lobby-debt').innerText = '¥' + d.debt.toLocaleString();
-            // --- 插入以下代碼來同步左上角資訊 ---
-        const gName = document.getElementById('global-name');
-        const gChips = document.getElementById('global-chips');
-        const gDebt = document.getElementById('global-debt');
+            
+            // 同步左上角資訊
+            const gName = document.getElementById('global-name');
+            const gChips = document.getElementById('global-chips');
+            const gDebt = document.getElementById('global-debt');
 
-        if (gName) gName.innerText = esc(d.name);
-        if (gChips) gChips.innerText = d.chips.toLocaleString();
-        if (gDebt) gDebt.innerText = d.debt.toLocaleString();
-        // ----------------------------------
-            // 回到大廳時切換回大廳主題
-    function switchTheme('lobby');
-        });
+            if (gName) gName.innerText = esc(d.name);
+            if (gChips) gChips.innerText = d.chips.toLocaleString();
+            if (gDebt) gDebt.innerText = d.debt.toLocaleString();
+
+            switchTheme('lobby');
+        }); // ✅ 關鍵的結束括號加在這裡！
 
         socket.on('joined_room', d => {
             document.getElementById('lobby-area').classList.add('hidden');
