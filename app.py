@@ -8,71 +8,72 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = 'kakegurui_secret'
 socketio = SocketIO(app, cors_allowed_origins="*")
 
+# 🃏 遊戲常數定義
 SUITS = ['♠', '♥', '♦', '♣']
 RANKS = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A']
 VALUES = {'2':2, '3':3, '4':4, '5':5, '6':6, '7':7, '8':8, '9':9, '10':10, 'J':10, 'Q':10, 'K':10, 'A':11}
 
-import random # 建議放在檔案最上方
-
-# 🟢 放在全域最上方
+# 🎰 全域老虎機彩金池
 jackpot_pool = 10000000 
 
-@socketio.on('slot_spin')
-def handle_slot_spin():
-    global jackpot_pool
-    sid = request.sid
-    p = players.get(sid)
-    
-    # 1. 安全檢查
-    if not p: return
-    
-    cost = 1000000
-    if p.get('chips', 0) < cost:
-        emit('chat_msg', {'name': '系統', 'msg': '❌ 籌碼不足 100 萬！'})
-        return
+# 🌍 全域玩家錢包系統
+db_players = {}   
+sid_map = {}      
 
-    # 2. 扣錢邏輯
-    p['chips'] -= cost
-    # 10% 抽稅進彩金池
-    jackpot_pool += int(cost * 0.1)
-
-    # 3. 亂數決定結果 (0-5)
-    r = [random.randint(0, 5) for _ in range(3)]
-    
-    # 4. 中獎判定
-    is_win = (r[0] == r[1] == r[2])
-    win_amt = 0
-    if is_win:
-        win_amt = int(jackpot_pool * 0.8) # 抱走 80% 彩金
-        p['chips'] += win_amt
-        jackpot_pool -= win_amt
-
-    # 5. 回傳結果給該位玩家
-    emit('slot_result', {
-        'reels': r, 
-        'win': is_win, 
-        'msg': f"🎊 大獎！贏得 ¥{win_amt:,}" if is_win else "沒中獎，加油！"
-    })
-    
-    # 6. 廣播最新彩金給所有人 (重要！)
-    socketio.emit('update_jackpot', {'pool': jackpot_pool}, broadcast=True)
-    
-    # 7. 更新玩家的大廳資產數值
-    emit('login_success', p)
-# 🌍 全域錢包系統
-db_players = {}  
-sid_map = {}     
-
-# 🚪 房間隔離系統
+# 🚪 房間隔離系統與遊戲狀態
 games = {
     'blackjack': { 'type': 'blackjack', 'phase': 'WAITING', 'round': 1, 'players': {}, 'dealer_hand': [], 'deck': [], 'pending_swaps': {} },
     'tax': { 'type': 'tax', 'phase': 'WAITING', 'round': 1, 'players': {} },
     'auction': { 
         'type': 'auction', 'phase': 'WAITING', 'round': 1, 'players': {}, 
         'dealer_sid': None, 'dealer_bids_left': 5, 
-        'current_bids': {}, 'highest_bid': 0  # 紀錄當局出價 {sid: amount}
+        'current_bids': {}, 'highest_bid': 0
     }
 }
+
+# ==========================================
+# 🎰 老虎機核心邏輯 (對接 db_players)
+# ==========================================
+@socketio.on('slot_spin')
+def handle_slot_spin():
+    global jackpot_pool
+    sid = request.sid
+    # 透過 sid 找到該玩家的 token，再從 db_players 抓錢包
+    tok = sid_map.get(sid, {}).get('token')
+    p = db_players.get(tok)
+    
+    if not p: return
+    
+    cost = 1000000 # 100 萬一抽
+    if p.get('chips', 0) < cost:
+        emit('chat_msg', {'name': '系統', 'msg': '❌ 籌碼不足 100 萬！'})
+        return
+
+    # 💸 扣錢並注入 10% 到彩金池
+    p['chips'] -= cost
+    jackpot_pool += int(cost * 0.1)
+
+    # 🎲 決定結果 (0-5)
+    r = [random.randint(0, 5) for _ in range(3)]
+    is_win = (r[0] == r[1] == r[2])
+    win_amt = 0
+    
+    if is_win:
+        win_amt = int(jackpot_pool * 0.8) # 贏走 80%
+        p['chips'] += win_amt
+        jackpot_pool -= win_amt
+        msg = f"🎊 大獎！{p['name']} 贏得了 ¥{win_amt:,}！"
+        socketio.emit('chat_msg', {'name': '🎰 廣播', 'msg': msg}, broadcast=True)
+    else:
+        msg = "沒中獎，加油！"
+
+    # 📢 傳送結果與更新大廳顯示
+    emit('slot_result', {'reels': r, 'win': is_win, 'msg': msg})
+    socketio.emit('update_jackpot', {'pool': jackpot_pool}, broadcast=True)
+    emit('login_success', {
+        'token': tok, 'name': p['name'], 
+        'chips': p['chips'], 'debt': p['debt']
+    })
 
 def calculate_hand(hand):
     val = sum(VALUES[card[1:]] for card in hand)
