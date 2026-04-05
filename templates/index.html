@@ -6,45 +6,6 @@
     <title>百花王學園 - 絕望深淵</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
     <style>
-        /* ========================================= */
-        /* 📱 手機版響應式設計 (RWD 魔法區) 📱         */
-        /* 當螢幕寬度小於 768px (通常是手機) 時自動觸發  */
-        /* ========================================= */
-         @media (max-width: 768px) {
-            /* 1. 減少周圍留白，讓出更多空間給遊戲 */
-            body { padding: 5px; }
-            .container { padding: 10px; border: none; margin-top: 10px; }
-            
-            /* 2. 標題往下挪，避免跟右上角的按鈕撞在一起 */
-            h1 { font-size: 24px; margin-top: 50px; }
-            
-            /* 3. 大廳的遊戲選擇按鈕：從「橫向並排」變成「上下堆疊」 */
-            .lobby-game-btn { width: 100%; margin: 10px 0; display: block; padding: 15px 5px; }
-            
-            /* 4. 頂部懸浮按鈕：縮小字體與間距，避免畫面擁擠 */
-            .top-btn { padding: 6px 10px; font-size: 12px; }
-            #btn-rules { right: 5px; top: 5px; }
-            #btn-mute { right: 65px; top: 5px; }
-            #btn-leave { right: 145px; top: 5px; }
-            
-            /* 5. 左上角借款區塊縮小 */
-            .global-recharge { top: 5px; left: 5px; padding: 3px; font-size: 12px; }
-            .global-recharge .step-val { min-width: 80px; padding: 5px; font-size: 14px; }
-            .global-recharge .step-btn { padding: 5px 15px; }
-            
-            /* 6. 玩家列表：資訊從「橫向擠在一起」變成「上下三排」閱讀更清楚 */
-            [id^="player-row-"] { flex-direction: column; align-items: flex-start; gap: 8px; }
-            
-            /* 7. 遊戲控制按鈕 (抽牌/停牌等)：全部撐滿寬度 (100%)，變成超大按鈕，手機絕對不會按錯！ */
-            #ctrl-action button, #ctrl-voting button { width: 100%; margin: 5px 0; box-sizing: border-box; display: block; }
-            
-            /* 8. 籌碼加減分器：佔滿寬度 */
-            .step-container { display: flex; width: 100%; }
-            .step-val { flex-grow: 1; }
-            
-            /* 9. 聊天室稍微縮小，避免佔據太多手機螢幕 */
-            #chat-log { height: 180px; font-size: 14px; }
-        }
         /* 注意：這裡移除了原本寫死的 url('/static/bg.jpg')，交給 JavaScript 決定 */
         body { background-color: #050505; background-repeat: no-repeat; background-position: center center; background-attachment: fixed; background-size: cover; color: #aaa; font-family: 'Noto Sans TC', sans-serif; margin: 0; padding: 20px; transition: background-image 1s ease-in-out; }
         .hidden { display: none !important; }
@@ -102,6 +63,45 @@
         
         input[type=range] { -webkit-appearance: none; appearance: none; width: 100%; background: #333; height: 10px; border-radius: 5px; outline: none; margin: 20px 0; }
         input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 30px; height: 30px; border-radius: 50%; background: #f00; cursor: pointer; border: 2px solid #fff; box-shadow: 0 0 10px #f00;}
+      /* ========================================= */
+        /* 📱 手機版響應式設計 (RWD 魔法區) 📱         */
+        /* 當螢幕寬度小於 768px (通常是手機) 時自動觸發  */
+        /* ========================================= */
+         @media (max-width: 768px) {
+            /* 1. 減少周圍留白，讓出更多空間給遊戲 */
+            body { padding: 5px; }
+            .container { padding: 10px; border: none; margin-top: 10px; }
+            
+            /* 2. 標題往下挪，避免跟右上角的按鈕撞在一起 */
+            h1 { font-size: 24px; margin-top: 50px; }
+            
+            /* 3. 大廳的遊戲選擇按鈕：從「橫向並排」變成「上下堆疊」 */
+            .lobby-game-btn { width: 100%; margin: 10px 0; display: block; padding: 15px 5px; }
+            
+            /* 4. 頂部懸浮按鈕：縮小字體與間距，避免畫面擁擠 */
+            .top-btn { padding: 6px 10px; font-size: 12px; }
+            #btn-rules { right: 5px; top: 5px; }
+            #btn-mute { right: 65px; top: 5px; }
+            #btn-leave { right: 145px; top: 5px; }
+            
+            /* 5. 左上角借款區塊縮小 */
+            .global-recharge { top: 5px; left: 5px; padding: 3px; font-size: 12px; }
+            .global-recharge .step-val { min-width: 80px; padding: 5px; font-size: 14px; }
+            .global-recharge .step-btn { padding: 5px 15px; }
+            
+            /* 6. 玩家列表：資訊從「橫向擠在一起」變成「上下三排」閱讀更清楚 */
+            [id^="player-row-"] { flex-direction: column; align-items: flex-start; gap: 8px; }
+            
+            /* 7. 遊戲控制按鈕 (抽牌/停牌等)：全部撐滿寬度 (100%)，變成超大按鈕，手機絕對不會按錯！ */
+            #ctrl-action button, #ctrl-voting button { width: 100%; margin: 5px 0; box-sizing: border-box; display: block; }
+            
+            /* 8. 籌碼加減分器：佔滿寬度 */
+            .step-container { display: flex; width: 100%; }
+            .step-val { flex-grow: 1; }
+            
+            /* 9. 聊天室稍微縮小，避免佔據太多手機螢幕 */
+            #chat-log { height: 180px; font-size: 14px; }
+        }
     </style>
 </head>
 <body onload="switchTheme('login')">
