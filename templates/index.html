@@ -61,130 +61,24 @@
         .lobby-game-btn:hover { background: #500; box-shadow: 0 0 20px #f00; transform: scale(1.05);}
         .lobby-game-btn:disabled { background: #111; border-color: #333; color: #555; box-shadow: none; cursor: not-allowed;}
         
-        input[type=range] { -webkit-appearance: none; appearance: none; width: 100%; background: #333; height: 10px; border-radius: 5px; outline: none; margin: 20px 0; }
-        input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 30px; height: 30px; border-radius: 50%; background: #f00; cursor: pointer; border: 2px solid #fff; box-shadow: 0 0 10px #f00;}
-      /* ========================================= */
-        /* 📱 手機版響應式設計 (RWD 魔法區) 📱         */
-        /* 當螢幕寬度小於 768px (通常是手機) 時自動觸發  */
-        /* ========================================= */
-         @media (max-width: 768px) {
-            /* 1. 減少周圍留白，讓出更多空間給遊戲 */
-            body { padding: 5px; }
-            .container { padding: 10px; border: none; margin-top: 10px; }
-            
-            /* 2. 標題往下挪，避免跟右上角的按鈕撞在一起 */
-            h1 { font-size: 24px; margin-top: 50px; }
-            
-            /* 3. 大廳的遊戲選擇按鈕：從「橫向並排」變成「上下堆疊」 */
-            .lobby-game-btn { width: 100%; margin: 10px 0; display: block; padding: 15px 5px; }
-            
-            /* 4. 頂部懸浮按鈕：縮小字體與間距，避免畫面擁擠 */
-            .top-btn { padding: 6px 10px; font-size: 12px; }
-            #btn-rules { right: 5px; top: 5px; }
-            #btn-mute { right: 65px; top: 5px; }
-            #btn-leave { right: 145px; top: 5px; }
-            
-            /* 5. 左上角借款區塊縮小 */
-            .global-recharge { top: 5px; left: 5px; padding: 3px; font-size: 12px; }
-            .global-recharge .step-val { min-width: 80px; padding: 5px; font-size: 14px; }
-            .global-recharge .step-btn { padding: 5px 15px; }
-            
-            /* 6. 玩家列表：資訊從「橫向擠在一起」變成「上下三排」閱讀更清楚 */
-            [id^="player-row-"] { flex-direction: column; align-items: flex-start; gap: 8px; }
-            
-            /* 7. 遊戲控制按鈕 (抽牌/停牌等)：全部撐滿寬度 (100%)，變成超大按鈕，手機絕對不會按錯！ */
-            #ctrl-action button, #ctrl-voting button { width: 100%; margin: 5px 0; box-sizing: border-box; display: block; }
-            
-            /* 8. 籌碼加減分器：佔滿寬度 */
-            .step-container { display: flex; width: 100%; }
-            .step-val { flex-grow: 1; }
-            
-            /* 9. 聊天室稍微縮小，避免佔據太多手機螢幕 */
-            #chat-log { height: 180px; font-size: 14px; }
-             /* 🎰 老虎機專屬樣式 */
-        .slot-machine { background: #200; border: 4px solid #ffd700; border-radius: 15px; padding: 20px; margin: 20px auto; max-width: 400px; text-align: center; box-shadow: 0 0 20px #f00; }
-        .slot-reel-container { display: flex; justify-content: center; gap: 10px; margin-bottom: 20px; background: #000; padding: 10px; border-radius: 10px; border: 2px inset #444; }
-        .reel { width: 80px; height: 80px; background: #fff; border-radius: 5px; font-size: 50px; line-height: 80px; color: #000; display: flex; align-items: center; justify-content: center; overflow: hidden; }
-        .slot-win-msg { color: #0f0; font-weight: bold; height: 24px; margin-top: 10px; }
-
-        /* 這邊是新增的代碼📱 修正左上角擁擠問題 (調整原本的 .global-recharge) */
+        /* 🔴 縮小左上角借錢區，解決擁擠問題 */
         .global-recharge { 
-            position: fixed; /* 改成固定位置，不隨捲軸跑 */
-            top: 10px; left: 10px; 
-            transform: scale(0.85); /* 🔴 直接整體縮小 15%，騰出空間 */
-            transform-origin: top left;
-            background: rgba(0, 40, 0, 0.9);
-            border: 1px solid #0f0;
-            padding: 8px;
-            z-index: 100;
+            position: fixed; top: 10px; left: 10px; z-index: 1000;
+            background: rgba(0, 40, 0, 0.9); border: 1px solid #0f0; padding: 5px;
+            transform: scale(0.75); transform-origin: top left;
         }
-             /* 💰 累積彩金看板樣式 */
-.jackpot-board {
-    background: #000;
-    border: 2px solid #ff0;
-    color: #f00;
-    font-family: 'Courier New', monospace;
-    font-size: 24px;
-    padding: 10px;
-    margin: 10px 0;
-    text-shadow: 0 0 10px #f00;
-    box-shadow: inset 0 0 15px #f00;
-}
-             <div id="slot-area" class="panel hidden">
-    <div class="jackpot-board">
-        JACKPOT: <span id="jackpot-display">¥10,000,000</span>
-    </div>
-    </div>
-             // 🎰 老虎機符號清單 (對應後端 0-5)
-const symbols = ['🍒', '🍋', '🍉', '🔔', '💎', '7️⃣'];
 
-function spinSlot() {
-    const btn = document.getElementById('btn-spin');
-    const res = document.getElementById('slot-result');
-    
-    // 🛑 防止重複點擊，並清空上次結果
-    btn.disabled = true;
-    res.innerText = "🎰 命運轉動中...";
+        /* 🎰 累積彩金老虎機樣式 */
+        .jackpot-board { background: #000; border: 2px solid #ff0; color: #f00; font-family: monospace; font-size: 24px; padding: 10px; margin: 10px 0; text-align: center; border-radius: 5px; }
+        .reel { width: 60px; height: 60px; background: #fff; color: #000; font-size: 40px; display: inline-block; line-height: 60px; margin: 5px; border-radius: 5px; font-weight: bold; }
 
-    // 💰 第一步：告訴後端「我要玩」，後端會在這裡扣錢
-    socket.emit('slot_spin'); 
-
-    // 🎨 第二步：開始跑「假轉動」動畫，先讓玩家覺得有在轉
-    let count = 0;
-    const timer = setInterval(() => {
-        document.getElementById('reel1').innerText = symbols[Math.floor(Math.random() * symbols.length)];
-        document.getElementById('reel2').innerText = symbols[Math.floor(Math.random() * symbols.length)];
-        document.getElementById('reel3').innerText = symbols[Math.floor(Math.random() * symbols.length)];
-        count++;
-        // 轉個 20 次（約 1 秒）後停下來
-        if (count > 20) clearInterval(timer);
-    }, 50);
-}
-
-// 🎯 第三步：接收後端給的「真實結果」
-socket.on('slot_result', d => {
-    // 稍微延遲一下，等上面的轉動動畫跑完
-    setTimeout(() => {
-        // 把輪盤定格在後端給的 [r1, r2, r3]
-        document.getElementById('reel1').innerText = symbols[d.reels[0]];
-        document.getElementById('reel2').innerText = symbols[d.reels[1]];
-        document.getElementById('reel3').innerText = symbols[d.reels[2]];
-        
-        // 顯示中獎或沒中的訊息
-        document.getElementById('slot-result').innerText = d.msg;
-        btn.disabled = false; // 恢復按鈕
-        
-        if (d.win) playSound('sfx-win'); // 如果中獎就播贏錢音效
-    }, 1100);
-});
-
-// 💰 第四步：同步更新全服累積彩金
-socket.on('update_jackpot', d => {
-    const board = document.getElementById('jackpot-display');
-    if (board) board.innerText = '¥' + d.pool.toLocaleString();
-});
+        /* 📱 手機版響應式設計 */
+        @media (max-width: 768px) {
+            body { padding: 5px; }
+            .container { padding: 10px; border: none; margin-top: 5px; }
+            h1 { font-size: 22px; margin-top: 60px; }
+            .lobby-game-btn { width: 100%; display: block; margin: 10px 0; }
         }
-    /* 新增代碼到這裡 */
     </style> </head>
 <body onload="switchTheme('login')">
     <audio id="bgm" loop></audio>
@@ -252,26 +146,7 @@ socket.on('update_jackpot', d => {
         </div>
 
         <h1 style="color: #f00; text-align: center; margin-top: 30px;">🩸 百花王學園 🩸</h1>
-
-        <div id="login-area" class="panel" style="text-align: center;">
-            <input type="text" id="name-in" placeholder="輸入代號">
-            <button onclick="login()">進入賭場</button>
-        </div>
-
-        <div id="lobby-area" class="panel hidden" style="text-align: center;">
-            <div id="slot-area" class="panel hidden">
-            <div class="slot-machine">
-                <h2 style="color: #ffd700; margin-top: 0;">🎰 瘋狂老虎機</h2>
-                <div class="slot-reel-container">
-                    <div id="reel1" class="reel">❓</div>
-                    <div id="reel2" class="reel">❓</div>
-                    <div id="reel3" class="reel">❓</div>
-                </div>
-                <p>單次下注：<span style="color: #ff0;">¥1,000,000</span></p>
-                <button id="btn-spin" onclick="spinSlot()" style="background: #f00; font-size: 20px; width: 80%;">拉下推桿！</button>
-                <div id="slot-result" class="slot-win-msg"></div>
-            </div>
-            <button onclick="switchTheme('lobby')" style="width: 100%; background: #333;">返回遊戲選擇</button>
+           
         </div>
             <h2 style="color: #fff;">歡迎回來，<span id="lobby-name" style="color:#0f0;"></span></h2>
             <div style="font-size: 18px; margin-bottom: 20px;">
@@ -283,8 +158,28 @@ socket.on('update_jackpot', d => {
             <button class="lobby-game-btn" onclick="enterRoom('blackjack')">🃏<br>絕望 21 點<br><span style="font-size:12px; color:#aaa;">(千術與背叛)</span></button>
             <button class="lobby-game-btn" onclick="enterRoom('tax')">⚖️<br>公共財遊戲<br><span style="font-size:12px; color:#aaa;">(貪婪與獵巫)</span></button>
             <button class="lobby-game-btn" onclick="enterRoom('auction')">🔨<br>100票拍賣會<br><span style="font-size:12px; color:#aaa;">(沉沒成本)</span></button>
+            <button class="lobby-game-btn" onclick="enterSlot()">🎰<br>瘋狂老虎機<br><span style="font-size:12px; color:#ffd700;">(累積彩金)</span></button>
         </div>
-
+            <div id="login-area" class="panel" style="text-align: center;">
+            <input type="text" id="name-in" placeholder="輸入代號">
+            <button onclick="login()">進入賭場</button>
+            </div>
+        <div id="lobby-area" class="panel hidden" style="text-align: center;">
+        <h2 style="color: #fff;">歡迎回來，<span id="lobby-name"></span></h2>
+        <button class="lobby-game-btn" onclick="enterSlot()">🎰 進入老虎機</button>
+            </div>
+        <div id="slot-area" class="panel hidden" style="text-align: center;">
+            <div class="jackpot-board">💰 JACKPOT: <span id="jackpot-display">¥10,000,000</span></div>
+            <div style="background: #200; padding: 20px; border-radius: 15px; border: 3px solid #ffd700;">
+                <div id="reel1" class="reel">❓</div>
+                <div id="reel2" class="reel">❓</div>
+                <div id="reel3" class="reel">❓</div>
+                <br>
+                <button id="btn-spin" onclick="spinSlot()" style="background: #f00; width: 80%; font-size: 20px; margin-top: 15px;">拉下推桿 (¥1M)</button>
+                <p id="slot-result" style="color: #0f0; font-weight: bold; height: 20px;"></p>
+                <button onclick="leaveSlot()" style="background: #333; width: 100%;">返回大廳</button>
+            </div>
+        </div>
         <div id="game-area" class="hidden">
             <div id="phase-display" style="font-size: 20px; color: #fff; text-align: center; font-weight: bold; margin-bottom: 10px;">等待開局...</div>
             
