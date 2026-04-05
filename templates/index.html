@@ -421,17 +421,25 @@
     </div>
 
 <script>
-        // 🔴 1. 核心初始化：必須放在最上面！
-        const socket = io();
+        // 🔴 1. 核心初始化 (全域變數只在最上方宣告一次)
+        const socket = io(); 
+        
         let mySid = null;
         let isMuted = false;
         let previousChips = {};
         let currentState = null; 
         let currentTheme = ''; // 紀錄目前場景
         
-        let amounts = { 'loan': 1000000, 'spec': 1000000, 'raise': 0, 'h_raise': 1000000, 'bid': 0 };
+        // 所有的金額數值統一管理
+        let amounts = { 
+            'loan': 1000000, 
+            'spec': 1000000, 
+            'raise': 0, 
+            'h_raise': 1000000, 
+            'bid': 0 
+        };
 
-        // 🔴 2. 基礎工具函數 (XSS 防護與 UI 安全更新)
+        // 🔴 2. 基礎工具函數
         function esc(s) {
             if (!s) return "";
             return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":"&#39;"})[m]);
@@ -442,51 +450,40 @@
             if (el) el.innerHTML = html;
         }
 
-        // 💰 3. 借貸系統變數與功能
-        let currentLoanAmount = 1000000; // 預設 100 萬
-
-// --- 這裡開始替換 ---
+        // 💰 3. 借貸系統功能
         function adjustAmt(type, change) {
             if (type === 'loan') {
-                // 確保 amounts 已經在上方定義過
+                // 修改全域物件 amounts 中的數值
                 amounts['loan'] += change;
+                
+                // 限制最少借 100 萬
                 if (amounts['loan'] < 1000000) amounts['loan'] = 1000000; 
                 
+                // 更新畫面顯示
                 const display = document.getElementById('loan-display');
                 if (display) {
                     display.innerText = "¥" + amounts['loan'].toLocaleString();
                 }
             }
+            // 這裡之後也可以擴充 spec, raise 等其他類型的金額調整
         }
 
         function requestLoan() {
-            // 發送借錢請求
+            // 向後端發送借錢請求
             socket.emit('request_loan', { amount: amounts['loan'] });
             
+            // 關閉借貸視窗
             const modal = document.getElementById('loan-modal');
-            if(modal) { 
+            if (modal) { 
                 modal.classList.add('hidden'); 
             }
+
+            // 如果有全域借貸按鈕也隱藏
+            const rechargeBtn = document.getElementById('btn-recharge-global');
+            if (rechargeBtn) rechargeBtn.classList.add('hidden');
         }
 
-        // 🔴 注意：這裡原本的 const socket = io(); 已經被我刪除了！
-        // 因為它必須放在 script 的最頂端，這裡不能再寫一次。
-
-        function setUI(id, html) {
-            const el = document.getElementById(id);
-            if (el) el.innerHTML = html;
-        }
-
-        // 初始化變數 (確保這些變數只宣告一次)
-        let mySid = null;
-        let isMuted = false;
-        let previousChips = {};
-        let currentState = null; 
-        let currentTheme = ''; 
-        // --- 替換結束 ---// 紀錄目前場景
-        
-        let amounts = { 'loan': 1000000, 'spec': 1000000, 'raise': 0, 'h_raise': 1000000, 'bid': 0 };
-
+        // --- 這裡銜接你原本後續的 login(), switchTheme() 等函數 ---
         // 🎨 主題切換器 (魔法就在這裡！)
         function switchTheme(theme) {
             if (currentTheme === theme) return;
