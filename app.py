@@ -15,7 +15,20 @@ VALUES = {'2':2, '3':3, '4':4, '5':5, '6':6, '7':7, '8':8, '9':9, '10':10, 'J':1
 
 # 🎰 全域老虎機彩金池
 jackpot_pool = 10000000 
+# ==========================================
+# 📊 股市與賽馬 全域變數
+# ==========================================
+# 賽馬當局下注池 { sid: {'horse': 馬號, 'amount': 金額, 'token': 玩家token} }
+horse_bets = {}
 
+# 股市預設價格 (A:穩定, B:成長, C:潛力, D:投機, E:妖股)
+stocks = {
+    'A': {'name': '學生會公債', 'price': 1000},
+    'B': {'name': '百花王建設', 'price': 1500},
+    'C': {'name': '家畜互助會', 'price': 500},
+    'D': {'name': '地下賭場集團', 'price': 2000},
+    'E': {'name': '夢子概念股', 'price': 100}
+}
 # 🌍 全域玩家錢包系統
 db_players = {}   
 sid_map = {}      
@@ -891,5 +904,178 @@ def check_auction_voting():
             if p['status'] == 'OBSERVING': p['status'] = 'ACTIVE'
         socketio.start_background_task(start_auction_game)
 
+# 1. 賽馬背景迴圈
+def horse_racing_loop():
+    while True:
+        socketio.sleep(600) # 每 10 分鐘 (600秒)
+        
+        # 🎲 決定哪匹馬贏 (1-10號)
+        # 這裡可以根據你想要的機率權重來骰
+        winner = random.choices(range(1, 11), weights=[30, 20, 15, 10, 8, 7, 5, 3, 1.5, 0.5])[0]
+        
+        # 💰 結算邏輯 (示意)
+        # 假設我們計算出本局所有人押錯的總額為 lost_bets
+        lost_bets = 5000000 # 這邊之後要串接實際投注資料
+        
+        global jackpot_pool
+        jackpot_pool += lost_bets # 💸 輸掉的錢注入老虎機！
+        
+        socketio.emit('chat_msg', {
+            'name': '🏇 賽馬結果', 
+            'msg': f"第 {winner} 號馬奪冠！未中獎金額 ¥{lost_bets:,} 已匯入老虎機彩金池！"
+        }, broadcast=True)
+        socketio.emit('update_jackpot', {'pool': jackpot_pool}, broadcast=True)
+
+# 2. 股市背景迴圈
+def stock_market_loop():
+    while True:
+        socketio.sleep(1800) # 每 30 分鐘 (1800秒)
+        
+        # 📈 根據你給的機率 (80%, 65%, 20%, 10%, 1%) 更新 5 支股票
+        # 更新完後廣播給全服玩家
+        socketio.emit('chat_msg', {
+            'name': '📈 股市開盤', 
+            'msg': "地下股市已更新！請前往交易所查看最新報價。"
+        }, broadcast=True)
+
+# ==========================================
+# 🐎 系統一：百花王虛擬賽馬 (含下注與背景結算)
+# ==========================================
+@socketio.on('place_horse_bet')
+def place_horse_bet(data):
+    sid = request.sid
+    tok = sid_map.get(sid, {}).get('token')
+    p = db_players.get(tok)
+    if not p: return
+
+    try:
+        horse_num = int(data.get('horse'))
+        amount = int(data.get('amount'))
+    except: return
+
+    if amount <= 0 or p['chips'] < amount:
+        emit('chat_msg', {'name': '系統', 'msg': '❌ 籌碼不足或金額無效！'})
+        return
+
+    # 扣錢並記錄下注
+    p['chips'] -= amount
+    horse_bets[sid] = {'horse': horse_num, 'amount': amount, 'token': tok}
+    emit('chat_msg', {'name': '系統', 'msg': f'🎫 成功下注 {horse_num} 號馬 ¥{amount:,}！'})
+    emit('login_success', {'token': tok, 'name': p['name'], 'chips': p['chips'], 'debt': p['debt']})
+
+def horse_racing_loop():
+    global jackpot_pool, horse_bets
+    while True:
+        socketio.sleep(600) # 等待 10 分鐘 (600秒)
+        
+        if not horse_bets:
+            socketio.emit('chat_msg', {'name': '🏇 賽馬場', 'msg': '本期賽馬無人下注，比賽流局。'}, broadcast=True)
+            continue
+
+        # 🎲 決定哪匹馬贏 (依照勝率權重)
+        # 1號(30%), 2-4號(15%), 5-9號(4%), 10號(1%)
+        winner = random.choices(range(1, 11), weights=[30, 15, 15, 15, 4, 4, 4, 4, 4, 1])[0]
+        
+        # 賠率設定
+        odds = {1: 2, 2: 5, 3: 5, 4: 5, 5: 20, 6: 20, 7: 20, 8: 20, 9: 20, 10: 100}
+        
+        lost_bets_total = 0
+        for sid, bet in horse_bets.items():
+            tok = bet['token']
+            p = db_players.get(tok)
+            if not p: continue
+            
+            if bet['horse'] == winner:
+                win_amt = bet['amount'] * odds[winner]
+                p['chips'] += win_amt
+                socketio.emit('chat_msg', {'name': '🏇 賽馬場', 'msg': f"🎉 恭喜 {p['name']} 押中 {winner} 號馬，贏得 ¥{win_amt:,}！"}, room=sid)
+            else:
+                lost_bets_total += bet['amount'] # 沒中的錢收集起來
+
+        # 💸 輸掉的錢注入老虎機彩金池
+        if lost_bets_total > 0:
+            jackpot_pool += lost_bets_total
+            socketio.emit('update_jackpot', {'pool': jackpot_pool}, broadcast=True)
+
+        socketio.emit('chat_msg', {'name': '🏇 賽馬結果', 'msg': f"第 {winner} 號馬奪冠！未中獎賭金 ¥{lost_bets_total:,} 已全數匯入老虎機彩金池！"}, broadcast=True)
+        horse_bets.clear() # 清空本局下注
+
+# ==========================================
+# 📈 系統二：學園地下股市 (含買賣與背景波動)
+# ==========================================
+@socketio.on('trade_stock')
+def trade_stock(data):
+    sid = request.sid
+    tok = sid_map.get(sid, {}).get('token')
+    p = db_players.get(tok)
+    if not p: return
+
+    action = data.get('action') # 'buy' 或 'sell'
+    stock_id = data.get('stock_id') # 'A', 'B', 'C', 'D', 'E'
+    amount = int(data.get('amount', 1)) # 買賣幾股
+    
+    if stock_id not in stocks: return
+    current_price = stocks[stock_id]['price']
+    total_cost = current_price * amount
+
+    # 初始化玩家的股票背包
+    if 'portfolio' not in p: p['portfolio'] = {'A':0, 'B':0, 'C':0, 'D':0, 'E':0}
+
+    if action == 'buy':
+        if p['chips'] >= total_cost:
+            p['chips'] -= total_cost
+            p['portfolio'][stock_id] += amount
+            emit('chat_msg', {'name': '系統', 'msg': f'📈 成功買入 {amount} 股 {stocks[stock_id]["name"]}。'})
+        else:
+            emit('chat_msg', {'name': '系統', 'msg': '❌ 籌碼不足！'})
+    
+    elif action == 'sell':
+        if p['portfolio'][stock_id] >= amount:
+            p['portfolio'][stock_id] -= amount
+            p['chips'] += total_cost
+            emit('chat_msg', {'name': '系統', 'msg': f'📉 成功賣出 {amount} 股 {stocks[stock_id]["name"]}，獲得 ¥{total_cost:,}。'})
+        else:
+            emit('chat_msg', {'name': '系統', 'msg': '❌ 持股不足！'})
+            
+    emit('login_success', {'token': tok, 'name': p['name'], 'chips': p['chips'], 'debt': p['debt']})
+
+def stock_market_loop():
+    global stocks
+    while True:
+        socketio.sleep(1800) # 每 30 分鐘 (1800秒)
+        
+        # A股 (80%漲5%, 20%跌1%)
+        if random.random() < 0.80: stocks['A']['price'] = int(stocks['A']['price'] * 1.05)
+        else: stocks['A']['price'] = int(stocks['A']['price'] * 0.99)
+        
+        # B股 (65%漲10%, 35%跌3%)
+        if random.random() < 0.65: stocks['B']['price'] = int(stocks['B']['price'] * 1.10)
+        else: stocks['B']['price'] = int(stocks['B']['price'] * 0.97)
+
+        # C股 (20%漲50%, 80%平盤)
+        if random.random() < 0.20: stocks['C']['price'] = int(stocks['C']['price'] * 1.50)
+        
+        # D股 (10%漲200%, 90%跌5%)
+        if random.random() < 0.10: stocks['D']['price'] = int(stocks['D']['price'] * 3.00)
+        else: stocks['D']['price'] = int(stocks['D']['price'] * 0.95)
+
+        # E股 (1%漲1000%, 99%跌1%)
+        if random.random() < 0.01: stocks['E']['price'] = int(stocks['E']['price'] * 11.00)
+        else: stocks['E']['price'] = int(stocks['E']['price'] * 0.99)
+
+        # 確保股價不會歸零 (最低 10 元)
+        for s in stocks.values(): s['price'] = max(10, s['price'])
+
+        socketio.emit('chat_msg', {'name': '📈 股市開盤', 'msg': "地下股市價格已更新！請隨時注意資產變化。"}, broadcast=True)
+# ==========================================
+# 🚀 啟動背景任務 (放在 app.py 最底部)
+# ==========================================
 if __name__ == '__main__':
+    # 🐎 啟動賽馬計時器 (獨立執行緒)
+    socketio.start_background_task(horse_racing_loop)
+    
+    # 📈 啟動股市開市計時器 (獨立執行緒)
+    socketio.start_background_task(stock_market_loop)
+    
+    # 啟動伺服器
     socketio.run(app, host='0.0.0.0', port=5000, debug=True)
