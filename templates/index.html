@@ -193,9 +193,36 @@
                 <button class="lobby-game-btn" onclick="enterRoom('tax')">⚖️<br>公共財遊戲<br><span style="font-size:12px; color:#aaa;">(貪婪與獵巫)</span></button>
                 <button class="lobby-game-btn" onclick="enterRoom('auction')">🔨<br>100票拍賣會<br><span style="font-size:12px; color:#aaa;">(沉沒成本)</span></button>
                 <button class="lobby-game-btn" onclick="enterSlot()" style="border-color: #ffd700;">🎰<br>瘋狂老虎機<br><span style="font-size:12px; color:#ffd700;">(累積彩金)</span></button>
+                <button class="lobby-game-btn" onclick="enterHorseArea()" style="border-color: #0f0;">🏇<br>百花王賽馬<br><span style="font-size:12px; color:#0f0;">(每10分鐘開跑)</span></button> 
             </div>
-        </div> 
-
+            </div> 
+            <div id="horse-area" class="panel hidden" style="text-align: center;">
+            <h2 style="color: #0f0;">🏇 百花王虛擬賽馬場</h2>
+            <p style="color: #aaa; margin-bottom: 20px;">每 10 分鐘自動開跑。<br>未中獎的籌碼將 <span style="color:#f00;">全數沒收並注入老虎機彩金池</span>！</p>
+            
+            <div style="background: #111; border: 2px solid #0f0; padding: 20px; border-radius: 10px; max-width: 400px; margin: 0 auto; text-align: left;">
+                <label style="color: #fff; font-size: 18px; display: block; margin-bottom: 5px;">馬匹選擇與賠率：</label>
+                <select id="horse-select" style="font-size: 16px; padding: 8px; background: #222; color: #fff; border: 1px solid #555; margin-bottom: 15px; width: 100%;">
+                    <option value="1">🐎 1號馬 (大熱門) - 賠率 2倍</option>
+                    <option value="2">🐎 2號馬 (實力派) - 賠率 5倍</option>
+                    <option value="3">🐎 3號馬 (實力派) - 賠率 5倍</option>
+                    <option value="4">🐎 4號馬 (實力派) - 賠率 5倍</option>
+                    <option value="5">🐎 5號馬 (黑馬) - 賠率 20倍</option>
+                    <option value="6">🐎 6號馬 (黑馬) - 賠率 20倍</option>
+                    <option value="7">🐎 7號馬 (黑馬) - 賠率 20倍</option>
+                    <option value="8">🐎 8號馬 (黑馬) - 賠率 20倍</option>
+                    <option value="9">🐎 9號馬 (黑馬) - 賠率 20倍</option>
+                    <option value="10">🦄 10號馬 (奇蹟馬) - 賠率 100倍</option>
+                </select>
+                
+                <label style="color: #fff; font-size: 18px; display: block; margin-bottom: 5px;">下注金額：</label>
+                <input type="number" id="horse-bet-amount" placeholder="輸入你想押的金額..." style="font-size: 18px; padding: 8px; background: #222; color: #0f0; border: 1px solid #555; margin-bottom: 15px; width: 100%; box-sizing: border-box;">
+                
+                <button onclick="placeHorseBet()" style="background: #060; color: #fff; width: 100%; font-size: 20px; padding: 10px; border: none; cursor: pointer; font-weight: bold;">確定買入馬券</button>
+            </div>
+            
+            <button onclick="leaveHorseArea()" style="background: #333; width: 100%; max-width: 400px; margin-top: 15px; padding: 10px; color: #ccc; border: none; cursor: pointer;">返回大廳</button>
+        </div>
         <div id="slot-area" class="panel hidden" style="text-align: center;">
             <div class="jackpot-board" style="background: #000; border: 2px solid #ff0; color: #f00; font-family: monospace; font-size: 28px; padding: 10px; margin-bottom: 15px;">
                 💰 JACKPOT: <span id="jackpot-display">¥10,000,000</span>
@@ -774,6 +801,7 @@ function setUI(id, html) {
             }
         }
 
+// 🚪 離開老虎機
         function leaveSlot() {
             const lobby = document.getElementById('lobby-area');
             const slot = document.getElementById('slot-area');
@@ -784,10 +812,39 @@ function setUI(id, html) {
             }
         }
 
+        // 🚪 進入賽馬場
+        function enterHorseArea() {
+            document.getElementById('lobby-area').classList.add('hidden');
+            document.getElementById('horse-area').classList.remove('hidden');
+        }
+
+        // 🚪 離開賽馬場
+        function leaveHorseArea() {
+            document.getElementById('horse-area').classList.add('hidden');
+            document.getElementById('lobby-area').classList.remove('hidden');
+        }
+
+        // 💸 送出馬券訂單
+        function placeHorseBet() {
+            const horse = document.getElementById('horse-select').value;
+            const amt = document.getElementById('horse-bet-amount').value;
+            
+            if(!amt || amt <= 0) { 
+                alert("❌ 請輸入有效的下注金額！"); 
+                return; 
+            }
+            
+            // 傳送給後端 app.py 的 place_horse_bet 事件
+            socket.emit('place_horse_bet', { horse: horse, amount: amt });
+            
+            // 清空輸入框
+            document.getElementById('horse-bet-amount').value = '';
+        }
+
+        // 🎰 老虎機拉桿
         function spinSlot() {
             const btn = document.getElementById('btn-spin');
             if (!btn || btn.disabled) return; // 🔴 防止重複扣錢
-            
             btn.disabled = true;
             const resEl = document.getElementById('slot-result');
             if (resEl) resEl.innerText = "🎰 命運轉動中...";
