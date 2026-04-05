@@ -118,6 +118,54 @@
             padding: 8px;
             z-index: 100;
         }
+             // 🎰 老虎機符號清單 (對應後端 0-5)
+const symbols = ['🍒', '🍋', '🍉', '🔔', '💎', '7️⃣'];
+
+function spinSlot() {
+    const btn = document.getElementById('btn-spin');
+    const res = document.getElementById('slot-result');
+    
+    // 🛑 防止重複點擊，並清空上次結果
+    btn.disabled = true;
+    res.innerText = "🎰 命運轉動中...";
+
+    // 💰 第一步：告訴後端「我要玩」，後端會在這裡扣錢
+    socket.emit('slot_spin'); 
+
+    // 🎨 第二步：開始跑「假轉動」動畫，先讓玩家覺得有在轉
+    let count = 0;
+    const timer = setInterval(() => {
+        document.getElementById('reel1').innerText = symbols[Math.floor(Math.random() * symbols.length)];
+        document.getElementById('reel2').innerText = symbols[Math.floor(Math.random() * symbols.length)];
+        document.getElementById('reel3').innerText = symbols[Math.floor(Math.random() * symbols.length)];
+        count++;
+        // 轉個 20 次（約 1 秒）後停下來
+        if (count > 20) clearInterval(timer);
+    }, 50);
+}
+
+// 🎯 第三步：接收後端給的「真實結果」
+socket.on('slot_result', d => {
+    // 稍微延遲一下，等上面的轉動動畫跑完
+    setTimeout(() => {
+        // 把輪盤定格在後端給的 [r1, r2, r3]
+        document.getElementById('reel1').innerText = symbols[d.reels[0]];
+        document.getElementById('reel2').innerText = symbols[d.reels[1]];
+        document.getElementById('reel3').innerText = symbols[d.reels[2]];
+        
+        // 顯示中獎或沒中的訊息
+        document.getElementById('slot-result').innerText = d.msg;
+        btn.disabled = false; // 恢復按鈕
+        
+        if (d.win) playSound('sfx-win'); // 如果中獎就播贏錢音效
+    }, 1100);
+});
+
+// 💰 第四步：同步更新全服累積彩金
+socket.on('update_jackpot', d => {
+    const board = document.getElementById('jackpot-display');
+    if (board) board.innerText = '¥' + d.pool.toLocaleString();
+});
         }
     </style> </head>
 <body onload="switchTheme('login')">
