@@ -229,6 +229,16 @@
             <p style="color: #aaa; margin-bottom: 20px;">每 30 分鐘更新一次股價。<br>低買高賣，或者一夜破產！</p>
             
             <div style="background: #111; border: 2px solid #0ff; padding: 20px; border-radius: 10px; max-width: 400px; margin: 0 auto; text-align: left;">
+            <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+                    <div style="flex: 1; background: #002; padding: 10px; border: 1px solid #0ff; text-align: left; font-size: 14px; border-radius: 5px;">
+                        <h4 style="color: #0ff; margin-top: 0; margin-bottom: 5px;">📊 即時股價板</h4>
+                        <div id="stock-price-board" style="color: #fff; line-height: 1.6;">載入中...</div>
+                    </div>
+                    <div style="flex: 1; background: #200; padding: 10px; border: 1px solid #f00; text-align: left; font-size: 14px; border-radius: 5px;">
+                        <h4 style="color: #f00; margin-top: 0; margin-bottom: 5px;">💼 我的證券戶</h4>
+                        <div id="my-portfolio-board" style="color: #fff; line-height: 1.6;">尚未持有股票</div>
+                    </div>
+                </div>
                 <label style="color: #fff; font-size: 18px; display: block; margin-bottom: 5px;">選擇交易標的：</label>
                 <select id="stock-select" style="font-size: 16px; padding: 8px; background: #222; color: #fff; border: 1px solid #555; margin-bottom: 15px; width: 100%;">
                     <option value="A">📊 A股 - 學生會公債 (穩定型)</option>
@@ -866,10 +876,13 @@ function setUI(id, html) {
             // 清空輸入框
             document.getElementById('horse-bet-amount').value = '';
         }
-        // 🚪 進入股市
+      // 🚪 進入股市時，自動向伺服器要最新股價
         function enterStockArea() {
             document.getElementById('lobby-area').classList.add('hidden');
             document.getElementById('stock-area').classList.remove('hidden');
+            
+            // ⭐️ 新增這行：進去就敲門要資料
+            socket.emit('get_stock_info'); 
         }
 
         // 🚪 離開股市
@@ -891,7 +904,30 @@ function setUI(id, html) {
             // 傳送給後端 app.py 的 trade_stock 事件
             socket.emit('trade_stock', { action: action, stock_id: stockId, amount: amt });
         }
+        // 📡 接收最新股價並更新看板
+        socket.on('update_stocks', function(stocks) {
+            let html = '';
+            for (let key in stocks) {
+                // toLocaleString() 可以幫數字加上千位數逗號 (例如 1,000)
+                html += `${key}股 (${stocks[key].name}): <span style="color:#0f0;">¥${stocks[key].price.toLocaleString()}</span><br>`;
+            }
+            document.getElementById('stock-price-board').innerHTML = html;
+        });
 
+        // 📡 接收我的持股數量
+        socket.on('update_portfolio', function(portfolio) {
+            let html = '';
+            let hasStock = false;
+            for (let key in portfolio) {
+                if (portfolio[key] > 0) {
+                    html += `持有 ${key}股: <span style="color:#ff0;">${portfolio[key]} 張</span><br>`;
+                    hasStock = true;
+                }
+            }
+            if (!hasStock) html = '<span style="color:#888;">目前沒有持有任何股票。</span>';
+            document.getElementById('my-portfolio-board').innerHTML = html;
+        });
+        
         // 🎰 老虎機拉桿
         function spinSlot() {
             const btn = document.getElementById('btn-spin');
