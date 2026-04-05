@@ -43,7 +43,22 @@ games = {
         'current_bids': {}, 'highest_bid': 0
     }
 }
+@socketio.on('request_loan')
+def handle_loan(data):
+    sid = request.sid
+    tok = sid_map.get(sid, {}).get('token')
+    p = db_players.get(tok)
+    if not p: return
 
+    amt = int(data.get('amount', 1000000))
+    p['chips'] += amt
+    p['debt'] += amt
+    
+    # 🔴 關鍵：這行會把最新的錢傳回前端，觸發你剛寫好的「同步左上角資訊」
+    emit('login_success', {'token': tok, 'name': p['name'], 'chips': p['chips'], 'debt': p['debt']})
+    
+    # 給個聊天室通知，增加儀式感
+    socketio.emit('chat_msg', {'name': '💸 債務通知', 'msg': f"{p['name']} 簽下了 ¥{amt:,} 的借據，祝你好運..."}, broadcast=True)
 # ==========================================
 # 🎰 老虎機核心邏輯 (對接 db_players)
 # ==========================================
