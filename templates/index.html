@@ -5,11 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>百花王學園 - 絕望深淵</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
-   /* ========================================= */
+    <style>
+        /* ========================================= */
         /* 📱 手機版響應式設計 (RWD 魔法區) 📱         */
         /* 當螢幕寬度小於 768px (通常是手機) 時自動觸發  */
         /* ========================================= */
- @media (max-width: 768px) {
+         @media (max-width: 768px) {
             /* 1. 減少周圍留白，讓出更多空間給遊戲 */
             body { padding: 5px; }
             .container { padding: 10px; border: none; margin-top: 10px; }
@@ -44,7 +45,6 @@
             /* 9. 聊天室稍微縮小，避免佔據太多手機螢幕 */
             #chat-log { height: 180px; font-size: 14px; }
         }
-    <style>
         /* 注意：這裡移除了原本寫死的 url('/static/bg.jpg')，交給 JavaScript 決定 */
         body { background-color: #050505; background-repeat: no-repeat; background-position: center center; background-attachment: fixed; background-size: cover; color: #aaa; font-family: 'Noto Sans TC', sans-serif; margin: 0; padding: 20px; transition: background-image 1s ease-in-out; }
         .hidden { display: none !important; }
