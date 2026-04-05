@@ -153,6 +153,25 @@
                 <button class="step-btn" onclick="adjustAmt('loan', 1000000)">+</button>
             </div><br>
             <button onclick="requestLoan()" style="background:#060; border:none; padding: 5px 20px; margin-top:5px; width: 100%;">確定借貸</button>
+      </div> <div class="global-recharge" style="position: fixed; top: 10px; left: 10px; z-index: 1000; background: rgba(0, 40, 0, 0.9); border: 1px solid #0f0; padding: 8px; border-radius: 5px; transform: scale(0.85); transform-origin: top left;">
+            <span id="global-name" style="color: #0f0; font-weight: bold;">尚未登入</span> | 
+            💰 <span id="global-chips" style="color: #ffd700;">0</span> | 
+            🩸 <span id="global-debt" style="color: #f55;">0</span>
+            <button class="recharge-btn" onclick="document.getElementById('loan-modal').classList.remove('hidden')" style="margin-left: 10px; background: #800; color: #fff; border: 1px solid #f00; cursor: pointer; padding: 2px 8px;">借貸</button>
+        </div>
+
+        <div id="loan-modal" class="modal hidden" style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 2000; background: #111; border: 2px solid #f00; padding: 20px; text-align: center; border-radius: 10px;">
+            <h2 style="color: #f00; margin-top: 0;">向莊家借貸</h2>
+            <p style="color: #0f0; font-size: 14px;">剩餘額度: <span id="recharge-count">3</span> 次</p>
+            
+            <div class="step-container" style="display: flex; justify-content: center; align-items: center; gap: 15px; margin: 20px 0;">
+                <button class="step-btn" onclick="adjustAmt('loan', -1000000)" style="font-size: 20px; padding: 5px 15px;">-</button>
+                <div class="step-val" id="loan-display" style="font-size: 24px; color: #fff; font-weight: bold;">¥1,000,000</div>
+                <button class="step-btn" onclick="adjustAmt('loan', 1000000)" style="font-size: 20px; padding: 5px 15px;">+</button>
+            </div>
+            
+            <button onclick="requestLoan(); document.getElementById('loan-modal').classList.add('hidden')" style="background: #f00; color: #fff; width: 100%; padding: 10px; font-size: 18px; border: none; cursor: pointer;">簽下借據</button>
+            <button onclick="document.getElementById('loan-modal').classList.add('hidden')" style="background: #333; color: #fff; width: 100%; padding: 10px; font-size: 18px; border: none; cursor: pointer; margin-top: 10px;">取消</button>
         </div>
 
         <div id="login-area" class="panel" style="text-align: center;">
