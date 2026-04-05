@@ -1016,7 +1016,40 @@
             const el = document.getElementById('jackpot-display');
             if (el) el.innerText = '¥' + d.pool.toLocaleString();
         });
+    
+     // 📡 接收最新獎池金額- 更新
+        socket.on('update_jackpot', function(data) {
+            const jackpotEl = document.getElementById('jackpot-display');
+            if (jackpotEl) {
+                // 收到後端傳來的 data.jackpot，更新畫面
+                jackpotEl.innerText = "¥" + data.jackpot.toLocaleString();
+            }
+        });
 
+        // 🎰 接收老虎機轉動結果
+        socket.on('slot_result', function(data) {
+            const symbols = ['🍒', '🍋', '🔔', '💎', '7️⃣', '💀'];
+            document.getElementById('reel1').innerText = symbols[data.reels[0]];
+            document.getElementById('reel2').innerText = symbols[data.reels[1]];
+            document.getElementById('reel3').innerText = symbols[data.reels[2]];
+            
+            const resEl = document.getElementById('slot-result');
+            resEl.innerText = data.msg;
+            resEl.style.color = data.win ? '#0f0' : '#f55';
+            
+            // 如果你之前有設定鎖定按鈕，記得解鎖
+            const spinBtn = document.getElementById('btn-spin');
+            if(spinBtn) spinBtn.disabled = false;
+        });
+
+        // 🎰 發送抽老虎機請求的按鈕綁定函數
+        function spinSlot() {
+            const spinBtn = document.getElementById('btn-spin');
+            if(spinBtn) spinBtn.disabled = true; // 轉動時先鎖定按鈕防連點
+            
+            // 發送給 app.py，名稱必須對應 'slot_spin'
+            socket.emit('slot_spin'); 
+        }
         // 🔴 XSS 防護函數 (確保名字顯示安全)
         function esc(s) {
             if (!s) return "";
