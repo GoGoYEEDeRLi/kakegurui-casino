@@ -420,13 +420,51 @@
         <div id="chat-log"></div>
     </div>
 
-    <script>
-        // 🔴 XSS 防護：防止玩家名字夾帶惡意代碼
-function esc(s) {
-    if (!s) return "";
-    return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":"&#39;"})[m]);
-}
+<script>
+        // 🔴 1. 核心初始化：必須放在最上面！
+        const socket = io(); 
 
+        // 🔴 2. 基礎工具函數 (XSS 防護與 UI 安全更新)
+        function esc(s) {
+            if (!s) return "";
+            return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":"&#39;"})[m]);
+        }
+        
+        function setUI(id, html) {
+            const el = document.getElementById(id);
+            if (el) el.innerHTML = html;
+        }
+
+        // 💰 3. 借貸系統變數與功能
+        let currentLoanAmount = 1000000; // 預設 100 萬
+
+        function adjustAmt(type, change) {
+            if (type === 'loan') {
+                currentLoanAmount += change;
+                // 防止借款變成負數或低於 100 萬
+                if (currentLoanAmount < 1000000) currentLoanAmount = 1000000; 
+                
+                // 更新畫面顯示 (加上千分位符號)
+                const display = document.getElementById('loan-display');
+                if (display) {
+                    display.innerText = "¥" + currentLoanAmount.toLocaleString();
+                }
+            }
+        }
+
+        function requestLoan() {
+            // 確保發送的是數字
+            socket.emit('request_loan', { amount: currentLoanAmount });
+            
+            // 關閉借貸視窗
+            const modal = document.getElementById('loan-modal');
+            if(modal) {
+                modal.classList.add('hidden');
+            }
+            // 也可以順便隱藏那個舊的 global-recharge 區塊 (如果你有用的話)
+            const rechargeDiv = document.getElementById('btn-recharge-global');
+            if(rechargeDiv) rechargeDiv.classList.add('hidden');
+        }
 // 🔴 安全 UI 更新：防止元素不存在時導致程式崩潰
 function setUI(id, html) {
     const el = document.getElementById(id);
