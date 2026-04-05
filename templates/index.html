@@ -145,7 +145,7 @@
         <button id="btn-mute" class="top-btn" style="right: 85px;" onclick="toggleMute()">🔊 音效開</button>
         <button id="btn-leave" class="top-btn leave-btn hidden" style="right: 175px;" onclick="returnToLobby()">🚪 退回大廳</button>
         
-        <div id="btn-recharge-global" class="global-recharge hidden">
+       <div id="btn-recharge-global" class="global-recharge hidden">
             <span style="color:#0f0; font-size:12px;">💸 借錢 (剩 <span id="recharge-count">3</span> 次)</span><br>
             <div class="step-container">
                 <button class="step-btn" onclick="adjustAmt('loan', -1000000)">-</button>
@@ -155,26 +155,13 @@
             <button onclick="requestLoan()" style="background:#060; border:none; padding: 5px 20px; margin-top:5px; width: 100%;">確定借貸</button>
         </div>
 
-        <h1 style="color: #f00; text-align: center; margin-top: 30px;">🩸 百花王學園 🩸</h1>
-           
-        </div>
-            <h2 style="color: #fff;">歡迎回來，<span id="lobby-name" style="color:#0f0;"></span></h2>
-            <div style="font-size: 18px; margin-bottom: 20px;">
-                全域資產：<span id="lobby-chips" style="color:#ffd700; font-weight:bold;"></span><br>
-                銀行負債：<span id="lobby-debt" style="color:#f55;"></span>
-            </div>
-            <hr style="border-color:#333; margin-bottom:20px;">
-            <h3>選擇賭局</h3>
-            <button class="lobby-game-btn" onclick="enterRoom('blackjack')">🃏<br>絕望 21 點<br><span style="font-size:12px; color:#aaa;">(千術與背叛)</span></button>
-            <button class="lobby-game-btn" onclick="enterRoom('tax')">⚖️<br>公共財遊戲<br><span style="font-size:12px; color:#aaa;">(貪婪與獵巫)</span></button>
-            <button class="lobby-game-btn" onclick="enterRoom('auction')">🔨<br>100票拍賣會<br><span style="font-size:12px; color:#aaa;">(沉沒成本)</span></button>
-            <button class="lobby-game-btn" onclick="enterSlot()">🎰<br>瘋狂老虎機<br><span style="font-size:12px; color:#ffd700;">(累積彩金)</span></button>
-        </div>
-            <div id="login-area" class="panel" style="text-align: center;">
+        <div id="login-area" class="panel" style="text-align: center;">
+            <h1 style="color: #f00; margin-top: 30px;">🩸 百花王學園 🩸</h1>
             <input type="text" id="name-in" placeholder="輸入代號">
             <button onclick="login()">進入賭場</button>
-            </div>
-<div id="lobby-area" class="panel hidden" style="text-align: center;">
+        </div>
+
+        <div id="lobby-area" class="panel hidden" style="text-align: center;">
             <h2 style="color: #fff;">歡迎回來，<span id="lobby-name" style="color:#0f0;"></span></h2>
             <div style="font-size: 18px; margin-bottom: 20px;">
                 全域資產：<span id="lobby-chips" style="color:#ffd700; font-weight:bold;"></span><br>
@@ -183,12 +170,14 @@
             <hr style="border-color:#333; margin-bottom:20px;">
             <h3>選擇賭局</h3>
             <div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 10px;">
-                <button class="lobby-game-btn" onclick="enterRoom('blackjack')">🃏<br>絕望 21 點</button>
-                <button class="lobby-game-btn" onclick="enterRoom('tax')">⚖️<br>公共財遊戲</button>
-                <button class="lobby-game-btn" onclick="enterRoom('auction')">🔨<br>100票拍賣會</button>
+                <button class="lobby-game-btn" onclick="enterRoom('blackjack')">🃏<br>絕望 21 點<br><span style="font-size:12px; color:#aaa;">(千術與背叛)</span></button>
+                <button class="lobby-game-btn" onclick="enterRoom('tax')">⚖️<br>公共財遊戲<br><span style="font-size:12px; color:#aaa;">(貪婪與獵巫)</span></button>
+                <button class="lobby-game-btn" onclick="enterRoom('auction')">🔨<br>100票拍賣會<br><span style="font-size:12px; color:#aaa;">(沉沒成本)</span></button>
                 <button class="lobby-game-btn" onclick="enterSlot()" style="border-color: #ffd700;">🎰<br>瘋狂老虎機<br><span style="font-size:12px; color:#ffd700;">(累積彩金)</span></button>
             </div>
-        </div> <div id="slot-area" class="panel hidden" style="text-align: center;">
+        </div> 
+
+        <div id="slot-area" class="panel hidden" style="text-align: center;">
             <div class="jackpot-board" style="background: #000; border: 2px solid #ff0; color: #f00; font-family: monospace; font-size: 28px; padding: 10px; margin-bottom: 15px;">
                 💰 JACKPOT: <span id="jackpot-display">¥10,000,000</span>
             </div>
