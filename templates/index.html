@@ -1,1 +1,680 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>百花王學園 - 絕望深淵</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <style>
+        /* 注意：這裡移除了原本寫死的 url('/static/bg.jpg')，交給 JavaScript 決定 */
+        body { background-color: #050505; background-repeat: no-repeat; background-position: center center; background-attachment: fixed; background-size: cover; color: #aaa; font-family: 'Noto Sans TC', sans-serif; margin: 0; padding: 20px; transition: background-image 1s ease-in-out; }
+        .hidden { display: none !important; }
+        .container { max-width: 900px; margin: auto; padding: 20px; border: 1px solid #333; background: rgba(17, 17, 17, 0.85); backdrop-filter: blur(5px); position: relative;}
+        .panel { border: 1px solid #333; padding: 15px; margin: 10px 0; background: rgba(10, 10, 10, 0.9); }
+        .me { border: 1px solid #0f0 !important; box-shadow: 0 0 10px #0f0; }
+        #chat-log { height: 250px; overflow-y: auto; background: rgba(0, 0, 0, 0.9); border: 1px solid #444; padding: 10px; color: #0f0; font-family: monospace; text-align: left; margin-top: 20px; line-height: 1.5;}
+        
+        button { background: #300; color: #fff; border: 1px solid #f00; padding: 10px 15px; cursor: pointer; font-weight: bold; transition: 0.3s; margin: 5px; }
+        button:hover { background: #f00; color: #000; box-shadow: 0 0 10px #f00; }
+        button:disabled { background: #222 !important; color: #555 !important; border-color: #333 !important; cursor: not-allowed; box-shadow: none !important;}
+        input, select { background: #222; color: #fff; border: 1px solid #555; padding: 10px; text-align: center; }
+        
+        .step-container { display: inline-flex; align-items: center; justify-content: center; background: #111; border: 1px solid #555; border-radius: 5px; overflow: hidden; margin: 5px; }
+        .step-btn { background: #333; color: #fff; border: none; padding: 10px 20px; font-size: 20px; cursor: pointer; margin: 0; }
+        .step-btn:hover { background: #555; box-shadow: none;}
+        .step-val { padding: 10px 15px; font-size: 16px; color: #ffd700; font-weight: bold; min-width: 100px; text-align: center; background: #000;}
 
+        .dramatic-phase { border: 2px solid #f00 !important; box-shadow: 0 0 30px #f00 inset; animation: pulse-red 2s infinite; }
+        @keyframes pulse-red { 0% { box-shadow: 0 0 10px #f00 inset; } 50% { box-shadow: 0 0 40px #f00 inset; border-color: #ff5555;} 100% { box-shadow: 0 0 10px #f00 inset; } }
+        .secret-btn { display: block; width: 100%; margin: 15px 0; padding: 20px; font-size: 18px; background: #111; color: #ccc; border: 1px solid #555; text-align: left; }
+        .secret-btn:hover { background: #500; border-color: #f00; color: white; transform: scale(1.02); }
+        .ally-btn { font-size: 16px; background: #003; border-color: #00f; }
+        .ally-btn:hover { background: #00a; color: white; box-shadow: 0 0 10px #00f;}
+        .report-btn { font-size: 16px; background: #500; border-color: #f00; width: 100%; margin: 5px 0;}
+        .report-btn:hover { background: #f00; color: white; box-shadow: 0 0 15px #f00;}
+        
+        .top-btn { position: absolute; top: 15px; background: #222; border-color: #555; color: #888; font-size: 12px;}
+        .top-btn:hover { background: #111; color: #fff; border-color: #fff;}
+        .leave-btn:hover { color: red; border-color: red;}
+        .global-recharge { position: absolute; top: 15px; left: 15px; background: rgba(0,20,0,0.8); border: 1px solid #0f0; padding: 5px; border-radius: 5px; text-align: center; z-index: 10;}
+        
+        .playing-card { display: inline-block; width: 35px; height: 50px; background: #fff; border-radius: 4px; margin: 0 4px; text-align: center; line-height: 1.1; font-size: 18px; font-weight: bold; box-shadow: 2px 2px 5px rgba(0,0,0,0.8); padding-top: 4px; vertical-align: middle; font-family: 'Arial', sans-serif;}
+        .card-back { background: repeating-linear-gradient(45deg, #800, #800 5px, #400 5px, #400 10px); color: transparent;}
+        
+        @keyframes floatAnim { 0% { opacity: 1; transform: translateY(0) scale(1); } 100% { opacity: 0; transform: translateY(-40px) scale(1.5); } }
+        .floating-number { position: absolute; font-weight: bold; font-size: 24px; animation: floatAnim 2s ease-out forwards; pointer-events: none; z-index: 100; text-shadow: 0 0 5px #000; }
+        
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 999; display: flex; align-items: center; justify-content: center;}
+        .modal-box { background: rgba(15,0,0,0.95); border: 2px solid #f00; padding: 20px; text-align: center; box-shadow: 0 0 20px #f00; border-radius: 8px; max-width: 650px; width: 90%;}
+        
+        .rules-content { text-align: left; max-height: 60vh; overflow-y: auto; padding-right: 15px; line-height: 1.6; color: #ddd; font-size: 15px;}
+        .rules-content::-webkit-scrollbar { width: 8px; }
+        .rules-content::-webkit-scrollbar-thumb { background: #f00; border-radius: 4px; }
+        
+        details { background: #222; margin-bottom: 10px; border-radius: 5px; border-left: 4px solid #f00; overflow: hidden; }
+        summary { font-size: 18px; font-weight: bold; cursor: pointer; color: #ff0; padding: 15px; background: #330; outline: none; }
+        summary:hover { background: #550; }
+        details p, details ul { padding: 0 15px; margin-bottom: 15px; }
+        details li { margin-bottom: 8px; }
+        
+        .lobby-game-btn { display: inline-block; width: 30%; margin: 10px 1%; padding: 20px 5px; font-size: 18px; background: #200; border: 2px solid #f00; border-radius: 10px; cursor: pointer; transition: 0.3s; color: #fff; vertical-align: top;}
+        .lobby-game-btn:hover { background: #500; box-shadow: 0 0 20px #f00; transform: scale(1.05);}
+        .lobby-game-btn:disabled { background: #111; border-color: #333; color: #555; box-shadow: none; cursor: not-allowed;}
+        
+        input[type=range] { -webkit-appearance: none; appearance: none; width: 100%; background: #333; height: 10px; border-radius: 5px; outline: none; margin: 20px 0; }
+        input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 30px; height: 30px; border-radius: 50%; background: #f00; cursor: pointer; border: 2px solid #fff; box-shadow: 0 0 10px #f00;}
+    </style>
+</head>
+<body onload="switchTheme('login')">
+    <audio id="bgm" loop></audio>
+    <audio id="sfx-deal"><source src="/static/deal.mp3" type="audio/mpeg"></audio>
+    <audio id="sfx-win"><source src="/static/win.mp3" type="audio/mpeg"></audio>
+    <audio id="sfx-lose"><source src="/static/lose.mp3" type="audio/mpeg"></audio>
+
+    <div id="rules-modal" class="modal-overlay hidden">
+        <div class="modal-box">
+            <h2 style="color:#f00; margin-top:0; border-bottom: 2px solid #f00; padding-bottom: 10px;">📜 絕望深淵 遊戲規則</h2>
+            <div class="rules-content">
+                <p>點擊下方展開各遊戲的詳細規則：</p>
+                <details open style="border-left-color: #0af;">
+                    <summary style="color: #0af;">🃏 【絕望 21 點】(背叛與千術)</summary>
+                    <ul>
+                        <li><strong>秘密做牌</strong>：莊家發牌前，可暗中選擇【合作(拿10,Q)】【背叛(奪取盟友1.5倍)】【假牌(拿A,K)】。</li>
+                        <li style="color: #f55; font-weight: bold;">⚠️ 若作弊被莊家掃描抓包，慘賠 6 倍注金並爆牌！</li>
+                        <li><strong>千術系統</strong>：耗費點數可【透視】或向盟友發出暗號【換牌】。</li>
+                        <li><strong>🚨 獵巫檢舉</strong>：懷疑某人作弊可檢舉！成功奪取對方 3 倍；失敗反賠 3 倍！</li>
+                    </ul>
+                </details>
+                <details style="border-left-color: #ff0;">
+                    <summary style="color: #ff0;">⚖️ 【公共財遊戲】(貪婪與獵巫)</summary>
+                    <ul>
+                        <li><strong>秘密分配</strong>：玩家暗中決定「上繳稅金」與「私吞口袋」的比例。</li>
+                        <li><strong>獎金翻倍</strong>：系統會將所有人上繳的稅金總和 <strong>乘上 2 倍，並平分給所有人！</strong></li>
+                        <li><strong>🔥 流放投票</strong>：5 局後強制投票，得票最高的最貪婪逃稅者，將面臨 <strong>¥20,000,000 天罰！</strong></li>
+                    </ul>
+                </details>
+                <details style="border-left-color: #f55;">
+                    <summary style="color: #f55;">🔨 【100票拍賣會】(沉沒成本)</summary>
+                    <ul>
+                        <li><strong>財閥莊家</strong>：全場最有錢的人強制成為莊家。莊家每局提供 100 票當拍賣品。</li>
+                        <li><strong>全付費盲拍</strong>：輸入競標票數，時間到價高者得標 (贏得100票)。</li>
+                        <li><strong style="color:#f55;">🩸 惡魔條款</strong>：不管你有沒有得標，<strong>所有人的出價金皆會被莊家直接沒收！</strong></li>
+                    </ul>
+                </details>
+            </div>
+            <button onclick="hideRules()" style="background:#500; font-size:18px; padding:10px 20px; margin-top: 15px; width: 100%;">🩸 我了解了，放馬過來</button>
+        </div>
+    </div>
+
+    <div id="swap-request-modal" class="modal-overlay hidden">
+        <div class="modal-box" style="border-color:#0f0; box-shadow:0 0 20px #0f0; background:rgba(0,20,0,0.95); max-width: 400px;">
+            <h3 style="color:#0f0; margin-top:0;">🤝 盟友的暗號</h3>
+            <p id="swap-request-text" style="color:#fff; font-size:18px; margin: 20px 0;"></p>
+            <button onclick="answerSwap(true)" style="background:#060; font-size:18px; padding:10px 20px;">✅ 偷偷交換</button>
+            <button onclick="answerSwap(false)" style="background:#600; font-size:18px; padding:10px 20px;">❌ 拒絕</button>
+        </div>
+    </div>
+
+    <div class="container" id="main-container">
+        <button id="btn-rules" class="top-btn" style="right: 15px;" onclick="showRules()">📜 規則</button>
+        <button id="btn-mute" class="top-btn" style="right: 85px;" onclick="toggleMute()">🔊 音效開</button>
+        <button id="btn-leave" class="top-btn leave-btn hidden" style="right: 175px;" onclick="returnToLobby()">🚪 退回大廳</button>
+        
+        <div id="btn-recharge-global" class="global-recharge hidden">
+            <span style="color:#0f0; font-size:12px;">💸 借錢 (剩 <span id="recharge-count">3</span> 次)</span><br>
+            <div class="step-container">
+                <button class="step-btn" onclick="adjustAmt('loan', -1000000)">-</button>
+                <div class="step-val" id="loan-display">¥1,000,000</div>
+                <button class="step-btn" onclick="adjustAmt('loan', 1000000)">+</button>
+            </div><br>
+            <button onclick="requestLoan()" style="background:#060; border:none; padding: 5px 20px; margin-top:5px; width: 100%;">確定借貸</button>
+        </div>
+
+        <h1 style="color: #f00; text-align: center; margin-top: 30px;">🩸 百花王學園 🩸</h1>
+
+        <div id="login-area" class="panel" style="text-align: center;">
+            <input type="text" id="name-in" placeholder="輸入代號">
+            <button onclick="login()">進入賭場</button>
+        </div>
+
+        <div id="lobby-area" class="panel hidden" style="text-align: center;">
+            <h2 style="color: #fff;">歡迎回來，<span id="lobby-name" style="color:#0f0;"></span></h2>
+            <div style="font-size: 18px; margin-bottom: 20px;">
+                全域資產：<span id="lobby-chips" style="color:#ffd700; font-weight:bold;"></span><br>
+                銀行負債：<span id="lobby-debt" style="color:#f55;"></span>
+            </div>
+            <hr style="border-color:#333; margin-bottom:20px;">
+            <h3>選擇賭局</h3>
+            <button class="lobby-game-btn" onclick="enterRoom('blackjack')">🃏<br>絕望 21 點<br><span style="font-size:12px; color:#aaa;">(千術與背叛)</span></button>
+            <button class="lobby-game-btn" onclick="enterRoom('tax')">⚖️<br>公共財遊戲<br><span style="font-size:12px; color:#aaa;">(貪婪與獵巫)</span></button>
+            <button class="lobby-game-btn" onclick="enterRoom('auction')">🔨<br>100票拍賣會<br><span style="font-size:12px; color:#aaa;">(沉沒成本)</span></button>
+        </div>
+
+        <div id="game-area" class="hidden">
+            <div id="phase-display" style="font-size: 20px; color: #fff; text-align: center; font-weight: bold; margin-bottom: 10px;">等待開局...</div>
+            
+            <div class="panel" id="blackjack-dealer-panel">
+                <h3>🏛️ 莊家牌面</h3>
+                <div id="dealer-cards" style="margin: 10px 0;">? ?</div>
+            </div>
+
+            <div class="panel hidden" id="auction-info-panel" style="background: rgba(50,0,0,0.8); border-color:#f55; text-align: center;">
+                <h3 style="color:#ff0; margin-top:0;">🔨 拍賣品：100 票 (¥10,000,000)</h3>
+                <p style="font-size: 24px; font-weight: bold; color: #0f0; margin: 10px 0;">目前最高出價：<span id="auction-highest-bid">0</span> 票</p>
+                <p style="color: #aaa; font-size: 14px; margin: 0;">(不管有無得標，出價金皆會被莊家沒收)</p>
+            </div>
+
+            <div class="panel">
+                <h3>👥 賭客狀態</h3>
+                <div id="player-list"></div>
+            </div>
+
+            <div id="control-panel-blackjack" class="panel hidden" style="text-align: center;">
+                <h3 id="ctrl-title">🎮 等待操作</h3>
+                
+                <div id="ctrl-ante" class="hidden">
+                    <p style="color: #ccc;" id="ante-text">準備好為你的貪婪付出代價了嗎？</p>
+                    <button id="btn-ante" onclick="sendAnte()" style="font-size: 18px; padding: 15px 30px;">支付盲注</button>
+                </div>
+
+                <div id="ctrl-spectator" class="hidden" style="border: 1px solid #da0; padding: 15px; margin-top: 10px; background: rgba(50,50,0,0.5);">
+                    <p style="color: #ff0; font-size: 18px; margin:0 0 10px 0;">🎰 場外地下賭盤</p>
+                    對象：<select id="spec-target" style="padding: 5px; width: 120px; margin-bottom: 10px;"></select><br>
+                    <div class="step-container">
+                        <button class="step-btn" onclick="adjustAmt('spec', -1000000)">-</button>
+                        <div class="step-val" id="spec-display">¥1,000,000</div>
+                        <button class="step-btn" onclick="adjustAmt('spec', 1000000)">+</button>
+                    </div><br>
+                    <button onclick="sendSpecBet()" style="background:#a60; border-color:#ff0; padding: 10px 20px; font-size: 16px;">確定插花</button>
+                </div>
+
+                <div id="ctrl-alliance" class="hidden">
+                    <p style="color: #0af;">請選擇一名玩家作為你的共犯：</p>
+                    <div id="ally-buttons"></div>
+                    <hr style="border-color: #333; margin: 15px 0;">
+                    <button onclick="sendAlly(null)" style="background: #333; border-color: #777;">孤狼 (不結盟)</button>
+                </div>
+
+                <div id="ctrl-rigging" class="hidden">
+                    <p style="color: #f55; font-size: 18px; font-weight: bold;">生死交關的抉擇，其他人將無從得知...</p>
+                    <button class="secret-btn" onclick="sendSecret('0')">【 0 】誠實 ── 懦夫的選擇，純粹靠運氣</button>
+                    <button class="secret-btn" onclick="sendSecret('1')">【 1 】合作 ── 虛偽的信賴 (被抓率 30%)</button>
+                    <button class="secret-btn" onclick="sendSecret('2')">【 2 】背叛 ── 愉悅的刺殺 (被抓率 40%)</button>
+                    <button class="secret-btn" onclick="sendSecret('3')">【 3 】假牌 ── 惡魔的契約 (被抓率 55% / 限1次)</button>
+                </div>
+
+                <div id="ctrl-raise" class="hidden">
+                    <p style="color: #ff0;">發牌完畢！你要加碼給對手壓力嗎？</p>
+                    <div class="step-container" style="margin-bottom: 10px;">
+                        <button class="step-btn" onclick="adjustAmt('raise', -1000000)">-</button>
+                        <div class="step-val" id="raise-display">¥0</div>
+                        <button class="step-btn" onclick="adjustAmt('raise', 1000000)">+</button>
+                    </div><br>
+                    <button onclick="sendRaise()" style="background:#800; font-size: 18px;">確定加注</button>
+                    <button onclick="sendRaise(0)" style="background:#333; border-color:#777; font-size: 18px;">過牌 (不加注)</button>
+                </div>
+
+                <div id="ctrl-action" class="hidden">
+                    <div style="margin-bottom: 15px;">
+                        <button id="btn-split" onclick="sendAction('split')" style="font-size: 18px; background:#008; border-color:#00f;" class="hidden">✂️ 拆牌 (Split)</button>
+                        <button onclick="sendAction('h')" style="font-size: 18px;">🃏 一般抽牌</button>
+                        <div style="display:inline-block; border: 1px solid #550; padding: 10px; background: #220; margin: 10px 0; border-radius: 5px;">
+                            <div class="step-container">
+                                <button class="step-btn" onclick="adjustAmt('h_raise', -1000000)">-</button>
+                                <div class="step-val" id="h_raise-display">¥1,000,000</div>
+                                <button class="step-btn" onclick="adjustAmt('h_raise', 1000000)">+</button>
+                            </div><br>
+                            <button onclick="sendAction('h_raise')" style="background:#a00; font-size: 18px; width: 100%; margin-top: 5px;">💸 追注並抽牌</button>
+                        </div>
+                        <button onclick="sendAction('s')" style="font-size: 18px; background:#111;">🛑 停牌 (Stand)</button>
+                    </div>
+                    <div>
+                        <button onclick="sendAction('1')" style="background:#404; border-color:#f0f;">👁️ 透視 (耗1點)</button>
+                        <button onclick="openSwapMenu()" style="background:#044; border-color:#0ff;">🔄 換牌 (耗1點)</button>
+                        <button onclick="sendAction('3')" style="background:#440; border-color:#ff0;">✨ 魔術手 (耗2點)</button>
+                    </div>
+                    <div id="swap-menu" class="hidden" style="border: 1px solid #0ff; padding: 15px; margin-top: 15px; background: #022; border-radius: 8px;">
+                        <p style="color: #0ff; margin: 0 0 10px 0; font-weight: bold; font-size: 18px;">🔄 發送暗號</p>
+                        <div style="margin-bottom: 10px;"><span style="color:#aaa;">交出我的:</span> <select id="swap-my-card" style="font-size:16px; padding:5px;"></select></div>
+                        <div style="margin-bottom: 10px;"><span style="color:#aaa;">索取盟友:</span> <select id="swap-ally-card" style="font-size:16px; padding:5px;"></select></div>
+                        <button onclick="submitSwapRequest()" style="background:#066; border-color:#0ff; font-size: 16px;">發送請求</button>
+                        <button onclick="document.getElementById('swap-menu').classList.add('hidden')" style="background:#333; border-color:#555; font-size: 16px;">取消</button>
+                    </div>
+                    <hr style="border-color: #555; margin: 15px 0;">
+                    <p style="color: #f55; font-weight: bold; margin-bottom: 5px;">🚨 獵殺老千 (成功奪取3倍，失敗反賠3倍！)</p>
+                    <div id="report-buttons"></div>
+                </div>
+            </div>
+
+            <div id="control-panel-tax" class="panel hidden" style="text-align: center;">
+                <h3 id="tax-ctrl-title">🎮 等待操作</h3>
+                <div id="tax-action" class="hidden">
+                    <p style="color: #ff0; font-size: 18px;">你獲得了本局補助金：¥5,000,000</p>
+                    <p style="color: #ccc;">請偷偷決定你要「納稅」多少？剩餘的將直接放進自己口袋。</p>
+                    <div style="padding: 10px; background: #222; border-radius: 10px; margin: 15px 0;">
+                        <input type="range" id="tax-slider" min="0" max="5000000" step="100000" value="2500000" oninput="updateTaxDisplay()">
+                        <p style="font-size: 18px; margin: 5px 0;">上繳公共稅金: <span id="tax-val-display" style="color:#0f0; font-weight:bold;">¥2,500,000</span></p>
+                        <p style="font-size: 18px; margin: 5px 0;">私吞入自己口袋: <span id="keep-val-display" style="color:#f55; font-weight:bold;">¥2,500,000</span></p>
+                    </div>
+                    <button onclick="submitTax()" style="background:#800; font-size:20px; padding:15px 30px; border-radius: 8px;">確認秘密申報</button>
+                </div>
+                <div id="tax-exile" class="hidden">
+                    <p style="color: #f55; font-size: 22px; font-weight: bold;">🔥 獵巫時間 🔥</p>
+                    <p>誰是那個死不繳稅的混蛋？請投票流放最貪婪的逃稅者！</p>
+                    <select id="exile-target" style="font-size:20px; padding:10px; width: 80%; margin-bottom: 15px;"></select><br>
+                    <button onclick="submitExile()" style="background:#f00; font-size:20px; padding: 15px 30px; box-shadow: 0 0 15px #f00;">確認流放！</button>
+                </div>
+            </div>
+
+            <div id="control-panel-auction" class="panel hidden" style="text-align: center;">
+                <h3 id="auction-ctrl-title">🎮 等待操作</h3>
+                
+                <div id="auction-action" class="hidden">
+                    <p style="color: #ccc;">請輸入你要出價的票數 (1票 = ¥100,000)</p>
+                    <div class="step-container" style="margin-bottom: 15px;">
+                        <button class="step-btn" onclick="adjustAmt('bid', -10)">-</button>
+                        <div class="step-val" id="bid-display">0 票</div>
+                        <button class="step-btn" onclick="adjustAmt('bid', 10)">+</button>
+                    </div><br>
+                    <button onclick="submitBid()" style="background:#800; font-size:20px; padding:15px 30px; border-radius: 8px;">💰 確認出價</button>
+                    <button onclick="submitBid(0)" style="background:#333; font-size:20px; padding:15px 30px; border-radius: 8px; border-color:#555;">💨 放棄出價</button>
+                </div>
+            </div>
+
+            <div id="ctrl-voting" class="panel hidden" style="text-align: center;">
+                <p style="color: #0ff; font-size: 18px; font-weight: bold;">結算完畢。你未來的打算是？</p>
+                <button onclick="sendVote('keep')" style="background:#006400; font-size: 16px;">▶️ 保留現狀繼續下一局</button>
+                <button onclick="sendVote('reset')" style="background:#8b0000; font-size: 16px;" id="btn-vote-reset">🔄 同意重置賭局</button>
+                <br><br>
+                <button onclick="sendVote('leave')" style="background:#222; border-color:#555; font-size: 14px;">🚪 退回大廳</button>
+            </div>
+            
+            <div id="ctrl-admin" class="panel hidden" style="text-align: center;">
+                <button onclick="startCurrentGame()" style="font-size: 18px; padding: 15px;">🚀 所有人到齊，開始遊戲</button>
+            </div>
+        </div>
+        <div id="chat-log"></div>
+    </div>
+
+    <script>
+        const socket = io();
+        let mySid = null;
+        let isMuted = false;
+        let previousChips = {};
+        let currentState = null; 
+        let currentTheme = ''; // 紀錄目前場景
+        
+        let amounts = { 'loan': 1000000, 'spec': 1000000, 'raise': 0, 'h_raise': 1000000, 'bid': 0 };
+
+        // 🎨 主題切換器 (魔法就在這裡！)
+        function switchTheme(theme) {
+            if (currentTheme === theme) return;
+            currentTheme = theme;
+
+            let bgImage = '/static/bg_lobby.jpg'; // 如果找不到圖片，你可以把名字改回 bg.jpg
+            let bgmFile = '/static/bgm_lobby.mp3'; // 如果找不到音樂，你可以把名字改回 bgm.mp3
+
+            if (theme === 'blackjack') {
+                bgImage = '/static/bg_blackjack.jpg';
+                bgmFile = '/static/bgm_blackjack.mp3';
+            } else if (theme === 'tax') {
+                bgImage = '/static/bg_tax.jpg';
+                bgmFile = '/static/bgm_tax.mp3';
+            } else if (theme === 'auction') {
+                bgImage = '/static/bg_auction.jpg';
+                bgmFile = '/static/bgm_auction.mp3';
+            }
+
+            // 1. 動態更換網頁背景
+            document.body.style.backgroundImage = `url('${bgImage}')`;
+
+            // 2. 動態更換背景音樂 (並保持原本的播放/靜音狀態)
+            let bgm = document.getElementById('bgm');
+            let wasPlaying = !bgm.paused;
+            bgm.src = bgmFile;
+            bgm.load(); // 載入新音樂
+            
+            // 如果玩家沒有靜音，且本來就在播放（或者是剛登入），就開始播新音樂
+            if (!isMuted && (wasPlaying || theme === 'lobby')) {
+                 bgm.play().catch(e => console.log("等待玩家互動後播放", e));
+            }
+        }
+
+        function showRules() { document.getElementById('rules-modal').classList.remove('hidden'); }
+        function hideRules() { document.getElementById('rules-modal').classList.add('hidden'); }
+
+        function adjustAmt(key, delta) {
+            let minLimit = (key === 'raise' || key === 'bid') ? 0 : 1000000;
+            let maxLimit = (key === 'bid') ? 2000 : 20000000; 
+            let newVal = amounts[key] + delta;
+            if (newVal >= minLimit && newVal <= maxLimit) {
+                amounts[key] = newVal;
+                let displayStr = (key === 'bid') ? amounts[key] + ' 票' : '¥' + amounts[key].toLocaleString();
+                document.getElementById(key + '-display').innerText = displayStr;
+            }
+        }
+
+        window.onload = () => {
+            const savedName = localStorage.getItem('kakegurui_name');
+            if (savedName) document.getElementById('name-in').value = savedName;
+        };
+
+        socket.on('connect', () => { mySid = socket.id; });
+        socket.on('chat_msg', d => {
+            const log = document.getElementById('chat-log');
+            log.innerHTML += `<div>${d.msg}</div>`;
+            log.scrollTop = log.scrollHeight;
+        });
+
+        socket.on('login_success', d => {
+            localStorage.setItem('kakegurui_token', d.token);
+            localStorage.setItem('kakegurui_name', d.name);
+            document.getElementById('login-area').classList.add('hidden');
+            document.getElementById('game-area').classList.add('hidden');
+            document.getElementById('btn-leave').classList.add('hidden');
+            
+            document.getElementById('lobby-area').classList.remove('hidden');
+            document.getElementById('lobby-name').innerText = d.name;
+            document.getElementById('lobby-chips').innerText = '¥' + d.chips.toLocaleString();
+            document.getElementById('lobby-debt').innerText = '¥' + d.debt.toLocaleString();
+            
+            // 回到大廳時切換回大廳主題
+            switchTheme('lobby');
+        });
+
+        socket.on('joined_room', d => {
+            document.getElementById('lobby-area').classList.add('hidden');
+            document.getElementById('game-area').classList.remove('hidden');
+            document.getElementById('btn-leave').classList.remove('hidden');
+        });
+
+        socket.on('play_sound', data => { playSound(data.sound); });
+
+        socket.on('incoming_swap', data => {
+            document.getElementById('swap-request-text').innerHTML = `你的盟友 <strong>${data.from_name}</strong> 想要暗中進行交易：<br><br>用他的 <span style="color:#ff0; font-weight:bold;">[${data.offer_card}]</span><br>換走你的 <span style="color:#0ff; font-weight:bold;">[${data.want_card}]</span>`;
+            document.getElementById('swap-request-modal').classList.remove('hidden');
+        });
+
+        function toggleMute() {
+            isMuted = !isMuted;
+            document.getElementById('btn-mute').innerText = isMuted ? '🔇 音效關' : '🔊 音效開';
+            document.getElementById('bgm').muted = isMuted;
+            if (!isMuted) { document.getElementById('bgm').play().catch(e=>{}); }
+        }
+        
+        function playSound(id) {
+            if (isMuted) return;
+            let audio = document.getElementById(id);
+            if (audio) { audio.currentTime = 0; audio.play().catch(e => {}); }
+        }
+
+        function renderCards(hand) {
+            if (!hand || hand.length === 0) return "<span style='color:#555;'>[等待發牌]</span>";
+            return hand.map(card => {
+                let suit = card.charAt(0);
+                let rank = card.substring(1);
+                let color = (suit === '♥' || suit === '♦') ? '#d00' : '#000';
+                return `<span class="playing-card" style="color: ${color}">${suit}<br>${rank}</span>`;
+            }).join("");
+        }
+
+        function showFloatingNumber(sid, diff) {
+            const row = document.getElementById(`player-row-${sid}`);
+            if (!row) return;
+            const floater = document.createElement('div');
+            floater.className = 'floating-number';
+            floater.innerText = diff > 0 ? `+¥${diff.toLocaleString()}` : `-¥${Math.abs(diff).toLocaleString()}`;
+            floater.style.color = diff > 0 ? '#0f0' : '#f00';
+            floater.style.left = '30%';
+            floater.style.top = '10px';
+            row.appendChild(floater);
+            setTimeout(() => floater.remove(), 2000);
+        }
+
+        function updateTaxDisplay() {
+            let val = parseInt(document.getElementById('tax-slider').value);
+            let keep = 5000000 - val;
+            document.getElementById('tax-val-display').innerText = '¥' + val.toLocaleString();
+            document.getElementById('keep-val-display').innerText = '¥' + keep.toLocaleString();
+        }
+
+        socket.on('game_update', state => {
+            currentState = state; 
+            document.getElementById('phase-display').innerText = `局數: ${state.round} | 階段: ${state.phase}`;
+            
+            // 進入房間收到遊戲狀態時，根據遊戲類型切換對應主題
+            if (state.type) {
+                switchTheme(state.type);
+            }
+            
+            let me = state.players[mySid];
+            
+            // 介面大分流
+            if (state.type === 'blackjack') {
+                document.getElementById('blackjack-dealer-panel').classList.remove('hidden');
+                document.getElementById('auction-info-panel').classList.add('hidden');
+                document.getElementById('control-panel-blackjack').classList.remove('hidden');
+                document.getElementById('control-panel-tax').classList.add('hidden');
+                document.getElementById('control-panel-auction').classList.add('hidden');
+                document.getElementById('btn-vote-reset').classList.remove('hidden'); 
+                
+                if(state.dealer_hand.length > 0) {
+                    let dh = state.dealer_hand;
+                    if (state.phase === 'ACTION' || state.phase === 'RAISE_BET' || state.phase === 'INSPECTION') {
+                        document.getElementById('dealer-cards').innerHTML = renderCards([dh[0]]) + `<span class="playing-card card-back">?</span>`;
+                    } else { document.getElementById('dealer-cards').innerHTML = renderCards(dh); }
+                } else { document.getElementById('dealer-cards').innerHTML = `<span class="playing-card card-back">?</span> <span class="playing-card card-back">?</span>`; }
+                
+                ['ctrl-ante','ctrl-alliance','ctrl-rigging','ctrl-raise','ctrl-action','ctrl-spectator','swap-menu'].forEach(id => document.getElementById(id).classList.add('hidden'));
+                const ctrlTitle = document.getElementById('ctrl-title');
+                
+                if (me && !['ELIMINATED', 'LEFT', 'OBSERVING', 'BUSTED'].includes(me.status)) {
+                    if (state.phase === 'ANTE' && me.status === 'ACTIVE') {
+                        document.getElementById('ctrl-ante').classList.remove('hidden'); ctrlTitle.innerText = "💰 支付盲注";
+                        const btnAnte = document.getElementById('btn-ante');
+                        let req_ante = state.round * 1000000;
+                        if (me.chips < req_ante) { btnAnte.disabled = true; btnAnte.innerText = `籌碼不足，請借款`; btnAnte.style.background = "#333"; } 
+                        else { btnAnte.disabled = false; btnAnte.innerText = `支付盲注 ¥${req_ante.toLocaleString()}`; btnAnte.style.background = "#800"; }
+                    }
+                    if (state.phase === 'ALLIANCE' && me.status === 'READY_ANTE') { document.getElementById('ctrl-alliance').classList.remove('hidden'); ctrlTitle.innerText = "🤝 公開結盟"; }
+                    if (state.phase === 'RIGGING' && me.status === 'READY_ALLY') { document.getElementById('ctrl-rigging').classList.remove('hidden'); ctrlTitle.innerText = "👁️ 秘密做牌"; }
+                    if (state.phase === 'RAISE_BET' && me.status === 'WAITING_RAISE') { document.getElementById('ctrl-raise').classList.remove('hidden'); ctrlTitle.innerText = "📈 發牌完畢，看牌加注"; }
+                    if (state.phase === 'ACTION' && me.status === 'ACTION') { 
+                        document.getElementById('ctrl-action').classList.remove('hidden'); ctrlTitle.innerText = `🃏 你的回合`; 
+                        let canSplit = (me.hand.length === 2 && me.hand[0].slice(1) === me.hand[1].slice(1) && me.split_hand.length === 0);
+                        if (canSplit) document.getElementById('btn-split').classList.remove('hidden'); else document.getElementById('btn-split').classList.add('hidden');
+                    }
+                }
+                
+            } else if (state.type === 'tax') {
+                document.getElementById('blackjack-dealer-panel').classList.add('hidden');
+                document.getElementById('auction-info-panel').classList.add('hidden');
+                document.getElementById('control-panel-blackjack').classList.add('hidden');
+                document.getElementById('control-panel-tax').classList.remove('hidden');
+                document.getElementById('control-panel-auction').classList.add('hidden');
+                
+                ['tax-action', 'tax-exile'].forEach(id => document.getElementById(id).classList.add('hidden'));
+                const taxTitle = document.getElementById('tax-ctrl-title');
+                
+                if (state.phase === 'TAXING' && me && me.status === 'ACTIVE') {
+                    if (me.tax_paid < 0) { document.getElementById('tax-action').classList.remove('hidden'); taxTitle.innerText = "🤫 秘密分配稅金"; } 
+                    else { taxTitle.innerText = "⏳ 已申報，等待其他人..."; }
+                } else if (state.phase === 'VOTING_EXILE' && me && me.status === 'ACTIVE') {
+                    if (!me.exile_vote) {
+                        document.getElementById('tax-exile').classList.remove('hidden'); taxTitle.innerText = "🔥 流放投票";
+                        let sel = document.getElementById('exile-target'); sel.innerHTML = '';
+                        for(let sid in state.players) { if(sid !== mySid && state.players[sid].status === 'ACTIVE') { sel.innerHTML += `<option value="${sid}">${state.players[sid].name}</option>`; } }
+                    } else { taxTitle.innerText = "⏳ 等待其他人投票..."; }
+                } else { taxTitle.innerText = "🎮 等待操作"; }
+                
+            } else if (state.type === 'auction') {
+                document.getElementById('blackjack-dealer-panel').classList.add('hidden');
+                document.getElementById('auction-info-panel').classList.remove('hidden');
+                document.getElementById('control-panel-blackjack').classList.add('hidden');
+                document.getElementById('control-panel-tax').classList.add('hidden');
+                document.getElementById('control-panel-auction').classList.remove('hidden');
+                document.getElementById('btn-vote-reset').classList.add('hidden'); 
+                
+                document.getElementById('auction-highest-bid').innerText = parseInt(state.highest_bid / 100000);
+                
+                document.getElementById('auction-action').classList.add('hidden');
+                const aucTitle = document.getElementById('auction-ctrl-title');
+                
+                if (state.phase === 'BIDDING' && me && me.status === 'ACTIVE') {
+                    if (mySid === state.dealer_sid) {
+                        if (state.dealer_bids_left > 0) {
+                            document.getElementById('auction-action').classList.remove('hidden');
+                            aucTitle.innerText = `👑 莊家特權 (剩餘 ${state.dealer_bids_left} 次出價機會)`;
+                        } else { aucTitle.innerText = "👑 莊家特權已耗盡，看著他們廝殺吧。"; }
+                    } else if (me.bid === 0) {
+                        document.getElementById('auction-action').classList.remove('hidden');
+                        aucTitle.innerText = "🔨 請出價";
+                    } else {
+                        aucTitle.innerText = "⏳ 已出價，等待結算...";
+                    }
+                } else if (state.phase === 'RESOLVING') {
+                    aucTitle.innerText = "⏳ 結算中...";
+                } else {
+                    aucTitle.innerText = "🎮 等待操作";
+                }
+            }
+
+            // 共用面板邏輯
+            if (state.phase === 'WAITING' && me && me.status !== 'LEFT') { document.getElementById('ctrl-admin').classList.remove('hidden'); } 
+            else { document.getElementById('ctrl-admin').classList.add('hidden'); }
+            
+            if (state.phase === 'VOTING' && me && me.status !== 'LEFT') {
+                document.getElementById('ctrl-voting').classList.remove('hidden');
+            } else { document.getElementById('ctrl-voting').classList.add('hidden'); }
+            
+            if (me && me.status !== 'LEFT' && me.recharge > 0) {
+                document.getElementById('recharge-count').innerText = me.recharge;
+                document.getElementById('btn-recharge-global').classList.remove('hidden');
+            } else { document.getElementById('btn-recharge-global').classList.add('hidden'); }
+
+            // 更新玩家清單
+            const list = document.getElementById('player-list');
+            const allyContainer = document.getElementById('ally-buttons');
+            const reportContainer = document.getElementById('report-buttons');
+            list.innerHTML = ''; allyContainer.innerHTML = ''; reportContainer.innerHTML = '';
+
+            for(let sid in state.players) {
+                let p = state.players[sid];
+                let isMe = sid === socket.id;
+                let s_color = '#fff';
+                let online_status = p.is_online ? '' : '<span style="color:#f00; font-size:12px;"> (離線)</span>';
+                if(p.status==='ELIMINATED') s_color = '#f00';
+                if(p.status==='LEFT') s_color = '#555';
+                if(p.status==='OBSERVING') s_color = '#0ff';
+
+                let chipsDisplay = '';
+                if (state.type === 'auction' && state.phase !== 'GAMEOVER') {
+                    chipsDisplay = `<span style="color: #aaa; font-style: italic;">[資產隱藏中]</span>`;
+                } else {
+                    let net_worth = p.chips - p.debt;
+                    let chipsColor = net_worth < 0 ? '#ff3333' : '#fff';
+                    chipsDisplay = `<span style="color: ${chipsColor}; font-weight: bold;">¥${p.chips.toLocaleString()}</span>`;
+                }
+                
+                let debtDisplay = (p.debt > 0 && state.type !== 'auction') ? `<span style="color: #ff5555; font-size: 14px;"> [🏦 借貸: ¥${p.debt.toLocaleString()}]</span>` : '';
+                
+                let handDisplay = '';
+                if (state.type === 'blackjack') {
+                    handDisplay = `<div style="margin-bottom: 5px; display: flex; align-items: center;">${p.active_hand === 'main' && state.phase === 'ACTION' && p.status === 'ACTION' ? '👉 ' : ''}<span style="margin-right:10px;">主牌:</span> <div>${renderCards(p.hand)}</div> <span style="font-size:12px; color:#888; margin-left:10px;">${p.main_status==='BUSTED'?'(爆牌)':''}</span></div>`;
+                    if (p.split_hand && p.split_hand.length > 0) handDisplay += `<div style="display: flex; align-items: center;">${p.active_hand === 'split' && state.phase === 'ACTION' && p.status === 'ACTION' ? '👉 ' : ''}<span style="margin-right:10px;">拆牌:</span> <div>${renderCards(p.split_hand)}</div> <span style="font-size:12px; color:#888; margin-left:10px;">${p.split_status==='BUSTED'?'(爆牌)':''}</span></div>`;
+                    
+                    if(!isMe && !['ELIMINATED', 'LEFT', 'OBSERVING'].includes(p.status) && state.phase === 'ALLIANCE') allyContainer.innerHTML += `<button class="ally-btn" onclick="sendAlly('${sid}')">與 ${p.name} 結盟</button>`;
+                    if(!isMe && !['ELIMINATED', 'LEFT', 'OBSERVING', 'BUSTED'].includes(p.status) && state.phase === 'ACTION') reportContainer.innerHTML += `<button class="report-btn" onclick="sendReport('${sid}')" ${me.has_reported ? 'disabled' : ''}>👉 檢舉 ${p.name}</button>`;
+                } else if (state.type === 'tax') {
+                    let taxStatus = (state.phase === 'TAXING') ? (p.tax_paid >= 0 ? '<span style="color:#0f0;">✅已申報</span>' : '<span style="color:#f55;">⏳思考中</span>') : '';
+                    let voteStatus = (state.phase === 'VOTING_EXILE') ? (p.exile_vote ? '<span style="color:#0f0;">🗳️已投票</span>' : '<span style="color:#f55;">⏳猶豫中</span>') : '';
+                    handDisplay = `<div style="margin-top: 5px; font-size:16px;">狀態: ${taxStatus} ${voteStatus}</div>`;
+                } else if (state.type === 'auction') {
+                    let isDealer = (sid === state.dealer_sid);
+                    let roleStr = isDealer ? '<span style="color:#ff0; font-weight:bold;">👑 [莊家]</span>' : '競標者';
+                    let bidStatus = (state.phase === 'BIDDING' && !isDealer) ? (p.bid > 0 ? '<span style="color:#0f0;">✅ 已出價</span>' : '<span style="color:#f55;">⏳ 考慮中</span>') : '';
+                    handDisplay = `<div style="margin-top: 5px; font-size:16px;">身分: ${roleStr} ${bidStatus}</div>`;
+                }
+
+                list.innerHTML += `
+                    <div id="player-row-${sid}" style="position: relative; border-bottom: 1px solid #222; padding: 10px; display: flex; justify-content: space-between;" class="${isMe ? 'me' : ''}">
+                        <div>ID: ${p.id} | <strong style="color:${s_color}">${p.name}</strong>${online_status}</div>
+                        <div>手邊籌碼: ${chipsDisplay} ${debtDisplay}</div>
+                        <div>${handDisplay}</div>
+                    </div>`;
+            }
+
+            for(let sid in state.players) {
+                let p = state.players[sid];
+                if (previousChips[sid] !== undefined) {
+                    let diff = p.chips - previousChips[sid];
+                    if (diff !== 0 && state.type !== 'auction') showFloatingNumber(sid, diff);
+                }
+                previousChips[sid] = p.chips;
+            }
+        });
+
+        function login() {
+            const name = document.getElementById('name-in').value;
+            const token = localStorage.getItem('kakegurui_token');
+            socket.emit('login', {name: name, token: token});
+            
+            // 登入時播放大廳音樂
+            if(!isMuted) { 
+                const bgm = document.getElementById('bgm'); 
+                bgm.volume = 0.3; 
+                bgm.play().catch(e => {}); 
+            }
+        }
+        function enterRoom(roomId) { socket.emit('join_game_room', {room: roomId}); }
+        function returnToLobby() { if(confirm("確定要退回大廳嗎？(視為放棄該局遊戲)")) socket.emit('return_to_lobby'); }
+        function requestLoan() { socket.emit('recharge', {amount: amounts['loan']}); }
+        
+        function startCurrentGame() {
+            if (currentState.type === 'blackjack') socket.emit('start_game');
+            else if (currentState.type === 'tax') socket.emit('start_tax_game');
+            else if (currentState.type === 'auction') socket.emit('start_auction_game');
+        }
+
+        function submitTax() { socket.emit('submit_tax', {amount: parseInt(document.getElementById('tax-slider').value)}); }
+        function submitExile() { socket.emit('submit_exile_vote', {target: document.getElementById('exile-target').value}); }
+        
+        function submitBid(val) {
+            let tickets = (val !== undefined) ? val : amounts['bid'];
+            socket.emit('submit_bid', {tickets: tickets});
+        }
+
+        function openSwapMenu() {
+            let me = currentState.players[mySid];
+            if (me.cheats < 1) { alert('❌ 千術點數不足！'); return; }
+            if (!me.ally) { alert('❌ 你是孤狼，沒有結盟對象！'); return; }
+            let ally = currentState.players[me.ally];
+            if (!ally || ['ELIMINATED', 'LEFT', 'OBSERVING'].includes(ally.status)) { alert('❌ 你的盟友已不在座位上！'); return; }
+            let buildOptions = (p) => {
+                let opts = '';
+                p.hand.forEach((c, i) => opts += `<option value="main_${i}">[主牌] ${c}</option>`);
+                if (p.split_hand) p.split_hand.forEach((c, i) => opts += `<option value="split_${i}">[拆牌] ${c}</option>`);
+                return opts;
+            };
+            let myOpts = buildOptions(me); let allyOpts = buildOptions(ally);
+            if (!myOpts || !allyOpts) { alert('❌ 雙方必須都有手牌才能交換！'); return; }
+            document.getElementById('swap-my-card').innerHTML = myOpts; document.getElementById('swap-ally-card').innerHTML = allyOpts;
+            document.getElementById('swap-menu').classList.remove('hidden');
+        }
+        function submitSwapRequest() {
+            let myChoice = document.getElementById('swap-my-card').value; let allyChoice = document.getElementById('swap-ally-card').value;
+            socket.emit('request_swap', { my_choice: myChoice, ally_choice: allyChoice });
+            document.getElementById('swap-menu').classList.add('hidden');
+        }
+        function answerSwap(accept) { socket.emit('answer_swap', { accept: accept }); document.getElementById('swap-request-modal').classList.add('hidden'); }
+        function sendAnte() { socket.emit('pay_ante'); }
+        function sendRaise(amt) { if(amt === undefined) amt = amounts['raise']; socket.emit('raise_bet', {amount: amt}); }
+        function sendAlly(sid) { socket.emit('choose_ally', {target: sid}); }
+        function sendSecret(c) { socket.emit('secret_action', {choice: c}); }
+        function sendAction(a) { let payload = {act: a}; if (a === 'h_raise') payload.amount = amounts['h_raise']; socket.emit('game_action', payload); }
+        function sendReport(sid) { socket.emit('game_action', {act: 'report', target: sid}); }
+        function sendVote(c) { socket.emit('submit_vote', {choice: c}); }
+        function sendSpecBet() { socket.emit('place_side_bet', {target: document.getElementById('spec-target').value, amount: amounts['spec']}); }
+    </script>
+</body>
+</html>
