@@ -716,6 +716,58 @@ function setUI(id, html) {
         function sendReport(sid) { socket.emit('game_action', {act: 'report', target: sid}); }
         function sendVote(c) { socket.emit('submit_vote', {choice: c}); }
         function sendSpecBet() { socket.emit('place_side_bet', {target: document.getElementById('spec-target').value, amount: amounts['spec']}); }
+
+        // --- 🎰 老虎機前端控制區 ---
+        const icons = ['🍒', '🍋', '🍉', '🔔', '💎', '7️⃣'];
+        
+        function enterSlot() {
+            document.getElementById('lobby-area').classList.add('hidden');
+            document.getElementById('slot-area').classList.remove('hidden');
+            switchTheme('slot');
+        }
+
+        function leaveSlot() {
+            document.getElementById('slot-area').classList.add('hidden');
+            document.getElementById('lobby-area').classList.remove('hidden');
+            switchTheme('lobby');
+        }
+
+        function spinSlot() {
+            const btn = document.getElementById('btn-spin');
+            btn.disabled = true;
+            document.getElementById('slot-result').innerText = "🎰 命運轉動中...";
+            socket.emit('slot_spin'); // 💰 向後端請求真正扣錢
+
+            let count = 0;
+            const timer = setInterval(() => {
+                document.getElementById('reel1').innerText = icons[Math.floor(Math.random() * icons.length)];
+                document.getElementById('reel2').innerText = icons[Math.floor(Math.random() * icons.length)];
+                document.getElementById('reel3').innerText = icons[Math.floor(Math.random() * icons.length)];
+                if (++count > 20) clearInterval(timer);
+            }, 50);
+        }
+
+        socket.on('slot_result', d => {
+            setTimeout(() => {
+                document.getElementById('reel1').innerText = icons[d.reels[0]];
+                document.getElementById('reel2').innerText = icons[d.reels[1]];
+                document.getElementById('reel3').innerText = icons[d.reels[2]];
+                document.getElementById('slot-result').innerText = d.msg;
+                document.getElementById('btn-spin').disabled = false;
+                if(d.win) playSound('sfx-win');
+            }, 1100);
+        });
+
+        socket.on('update_jackpot', d => {
+            const el = document.getElementById('jackpot-display');
+            if (el) el.innerText = '¥' + d.pool.toLocaleString();
+        });
+
+        // 🔴 XSS 防護函數 (確保名字顯示安全)
+        function esc(s) {
+            if (!s) return "";
+            return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":"&#39;"})[m]);
+        }
     </script>
 </body>
 </html>
