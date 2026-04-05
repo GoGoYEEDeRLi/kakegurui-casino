@@ -47,6 +47,7 @@ games = {
 # ==========================================
 # 🎰 老虎機核心邏輯 (對接 db_players)
 # ==========================================
+
 @socketio.on('slot_spin')
 def handle_slot_spin():
     global jackpot_pool
@@ -1038,7 +1039,19 @@ def trade_stock(data):
             emit('chat_msg', {'name': '系統', 'msg': '❌ 持股不足！'})
             
     emit('login_success', {'token': tok, 'name': p['name'], 'chips': p['chips'], 'debt': p['debt']})
-
+    # 🟢 ：每次買賣完，立刻更新玩家的個人戶頭
+    emit('update_portfolio', p['portfolio'])
+   
+@socketio.on('get_stock_info')
+def get_stock_info():
+    sid = request.sid
+    tok = sid_map.get(sid, {}).get('token')
+    p = db_players.get(tok)
+    
+    emit('update_stocks', stocks)
+    
+    if p and 'portfolio' in p:
+        emit('update_portfolio', p['portfolio']) 
 def stock_market_loop():
     global stocks
     while True:
@@ -1067,6 +1080,8 @@ def stock_market_loop():
         for s in stocks.values(): s['price'] = max(10, s['price'])
 
         socketio.emit('chat_msg', {'name': '📈 股市開盤', 'msg': "地下股市價格已更新！請隨時注意資產變化。"}, broadcast=True)
+        # 🟢 請加上這行：將最新股價推播給全服
+        socketio.emit('update_stocks', stocks, broadcast=True)
 # ==========================================
 # 🚀 啟動背景任務 (放在 app.py 最底部)
 # ==========================================
