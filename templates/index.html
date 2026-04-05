@@ -564,7 +564,6 @@
         });
 
         socket.on('play_sound', data => { playSound(data.sound); });
-
         socket.on('incoming_swap', data => {
             document.getElementById('swap-request-text').innerHTML = `你的盟友 <strong>${data.from_name}</strong> 想要暗中進行交易：<br><br>用他的 <span style="color:#ff0; font-weight:bold;">[${data.offer_card}]</span><br>換走你的 <span style="color:#0ff; font-weight:bold;">[${data.want_card}]</span>`;
             document.getElementById('swap-request-modal').classList.remove('hidden');
