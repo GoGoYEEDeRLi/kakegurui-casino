@@ -4,7 +4,7 @@ import random
 import time
 import uuid
 
-app = Flask(__name__, static_folder='.', static_url_path='/static')
+app = Flask(__name__)
 app.config['SECRET_KEY'] = 'kakegurui_secret'
 socketio = SocketIO(app, cors_allowed_origins="*")
 
