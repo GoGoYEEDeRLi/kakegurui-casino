@@ -445,9 +445,10 @@
         // 💰 3. 借貸系統變數與功能
         let currentLoanAmount = 1000000; // 預設 100 萬
 
-function adjustAmt(type, change) {
+// --- 這裡開始替換 ---
+        function adjustAmt(type, change) {
             if (type === 'loan') {
-                // ✅ 修改這裡：使用你在 487 行定義的 amounts 物件
+                // 確保 amounts 已經在上方定義過
                 amounts['loan'] += change;
                 if (amounts['loan'] < 1000000) amounts['loan'] = 1000000; 
                 
@@ -459,32 +460,30 @@ function adjustAmt(type, change) {
         }
 
         function requestLoan() {
-            // ✅ 修改這裡：同步使用 amounts['loan']
+            // 發送借錢請求
             socket.emit('request_loan', { amount: amounts['loan'] });
             
             const modal = document.getElementById('loan-modal');
-            if(modal) { modal.classList.add('hidden'); }
-        }
-            
-            // 關閉借貸視窗
-            const modal = document.getElementById('loan-modal');
-            if(modal) {
-                modal.classList.add('hidden');
+            if(modal) { 
+                modal.classList.add('hidden'); 
             }
-            // 也可以順便隱藏那個舊的 global-recharge 區塊 (如果你有用的話)
-            const rechargeDiv = document.getElementById('btn-recharge-global');
-            if(rechargeDiv) rechargeDiv.classList.add('hidden');
         }
-// 🔴 安全 UI 更新：防止元素不存在時導致程式崩潰
-function setUI(id, html) {
-    const el = document.getElementById(id);
-    if (el) el.innerHTML = html;
-}
+
+        // 🔴 注意：這裡原本的 const socket = io(); 已經被我刪除了！
+        // 因為它必須放在 script 的最頂端，這裡不能再寫一次。
+
+        function setUI(id, html) {
+            const el = document.getElementById(id);
+            if (el) el.innerHTML = html;
+        }
+
+        // 初始化變數 (確保這些變數只宣告一次)
         let mySid = null;
         let isMuted = false;
         let previousChips = {};
         let currentState = null; 
-        let currentTheme = ''; // 紀錄目前場景
+        let currentTheme = ''; 
+        // --- 替換結束 ---// 紀錄目前場景
         
         let amounts = { 'loan': 1000000, 'spec': 1000000, 'raise': 0, 'h_raise': 1000000, 'bid': 0 };
 
