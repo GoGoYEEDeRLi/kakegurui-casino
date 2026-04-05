@@ -68,9 +68,17 @@
             transform: scale(0.75); transform-origin: top left;
         }
 
-        /* 🎰 累積彩金老虎機樣式 */
+/* 🎰 累積彩金老虎機樣式 */
         .jackpot-board { background: #000; border: 2px solid #ff0; color: #f00; font-family: monospace; font-size: 24px; padding: 10px; margin: 10px 0; text-align: center; border-radius: 5px; }
         .reel { width: 60px; height: 60px; background: #fff; color: #000; font-size: 40px; display: inline-block; line-height: 60px; margin: 5px; border-radius: 5px; font-weight: bold; }
+
+        /* 🔴 這裡新增：解決左上角太擠的問題 */
+        .global-recharge { 
+            position: fixed; top: 10px; left: 10px; z-index: 1000;
+            background: rgba(0, 40, 0, 0.9); border: 1px solid #0f0; padding: 5px;
+            /* 縮小 20% 並以左上角為中心縮放 */
+            transform: scale(0.8); transform-origin: top left;
+        }
 
         /* 📱 手機版響應式設計 */
         @media (max-width: 768px) {
@@ -78,6 +86,8 @@
             .container { padding: 10px; border: none; margin-top: 5px; }
             h1 { font-size: 22px; margin-top: 60px; }
             .lobby-game-btn { width: 100%; display: block; margin: 10px 0; }
+            /* 手機版可以再縮小一點點 */
+            .global-recharge { transform: scale(0.7); } 
         }
     </style> </head>
 <body onload="switchTheme('login')">
@@ -164,25 +174,38 @@
             <input type="text" id="name-in" placeholder="輸入代號">
             <button onclick="login()">進入賭場</button>
             </div>
-        <div id="lobby-area" class="panel hidden" style="text-align: center;">
-        <h2 style="color: #fff;">歡迎回來，<span id="lobby-name"></span></h2>
-        <button class="lobby-game-btn" onclick="enterSlot()">🎰 進入老虎機</button>
+<div id="lobby-area" class="panel hidden" style="text-align: center;">
+            <h2 style="color: #fff;">歡迎回來，<span id="lobby-name" style="color:#0f0;"></span></h2>
+            <div style="font-size: 18px; margin-bottom: 20px;">
+                全域資產：<span id="lobby-chips" style="color:#ffd700; font-weight:bold;"></span><br>
+                銀行負債：<span id="lobby-debt" style="color:#f55;"></span>
             </div>
-        <div id="slot-area" class="panel hidden" style="text-align: center;">
-            <div class="jackpot-board">💰 JACKPOT: <span id="jackpot-display">¥10,000,000</span></div>
+            <hr style="border-color:#333; margin-bottom:20px;">
+            <h3>選擇賭局</h3>
+            <div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 10px;">
+                <button class="lobby-game-btn" onclick="enterRoom('blackjack')">🃏<br>絕望 21 點</button>
+                <button class="lobby-game-btn" onclick="enterRoom('tax')">⚖️<br>公共財遊戲</button>
+                <button class="lobby-game-btn" onclick="enterRoom('auction')">🔨<br>100票拍賣會</button>
+                <button class="lobby-game-btn" onclick="enterSlot()" style="border-color: #ffd700;">🎰<br>瘋狂老虎機<br><span style="font-size:12px; color:#ffd700;">(累積彩金)</span></button>
+            </div>
+        </div> <div id="slot-area" class="panel hidden" style="text-align: center;">
+            <div class="jackpot-board" style="background: #000; border: 2px solid #ff0; color: #f00; font-family: monospace; font-size: 28px; padding: 10px; margin-bottom: 15px;">
+                💰 JACKPOT: <span id="jackpot-display">¥10,000,000</span>
+            </div>
             <div style="background: #200; padding: 20px; border-radius: 15px; border: 3px solid #ffd700;">
-                <div id="reel1" class="reel">❓</div>
-                <div id="reel2" class="reel">❓</div>
-                <div id="reel3" class="reel">❓</div>
-                <br>
-                <button id="btn-spin" onclick="spinSlot()" style="background: #f00; width: 80%; font-size: 20px; margin-top: 15px;">拉下推桿 (¥1M)</button>
-                <p id="slot-result" style="color: #0f0; font-weight: bold; height: 20px;"></p>
-                <button onclick="leaveSlot()" style="background: #333; width: 100%;">返回大廳</button>
+                <div style="display: flex; justify-content: center; gap: 10px; margin-bottom: 20px;">
+                    <div id="reel1" class="reel" style="width:70px; height:70px; background:#fff; color:#000; font-size:40px; line-height:70px; border-radius:5px;">❓</div>
+                    <div id="reel2" class="reel" style="width:70px; height:70px; background:#fff; color:#000; font-size:40px; line-height:70px; border-radius:5px;">❓</div>
+                    <div id="reel3" class="reel" style="width:70px; height:70px; background:#fff; color:#000; font-size:40px; line-height:70px; border-radius:5px;">❓</div>
+                </div>
+                <p style="color: #aaa;">單次下注：<span style="color: #ff0;">¥1,000,000</span></p>
+                <button id="btn-spin" onclick="spinSlot()" style="background: #f00; width: 80%; font-size: 20px; padding: 15px;">拉下推桿！</button>
+                <div id="slot-result" style="color: #0f0; font-weight: bold; margin-top: 15px; height: 20px;"></div>
+                <button onclick="leaveSlot()" style="background: #333; width: 100%; margin-top: 15px;">返回遊戲選擇</button>
             </div>
         </div>
+
         <div id="game-area" class="hidden">
-            <div id="phase-display" style="font-size: 20px; color: #fff; text-align: center; font-weight: bold; margin-bottom: 10px;">等待開局...</div>
-            
             <div class="panel" id="blackjack-dealer-panel">
                 <h3>🏛️ 莊家牌面</h3>
                 <div id="dealer-cards" style="margin: 10px 0;">? ?</div>
@@ -684,29 +707,41 @@ function setUI(id, html) {
             let tickets = (val !== undefined) ? val : amounts['bid'];
             socket.emit('submit_bid', {tickets: tickets});
         }
-
         function openSwapMenu() {
             let me = currentState.players[mySid];
+            if (!me) return; // 🔴 防護：找不到自己時不執行
             if (me.cheats < 1) { alert('❌ 千術點數不足！'); return; }
             if (!me.ally) { alert('❌ 你是孤狼，沒有結盟對象！'); return; }
             let ally = currentState.players[me.ally];
             if (!ally || ['ELIMINATED', 'LEFT', 'OBSERVING'].includes(ally.status)) { alert('❌ 你的盟友已不在座位上！'); return; }
+            
             let buildOptions = (p) => {
                 let opts = '';
-                p.hand.forEach((c, i) => opts += `<option value="main_${i}">[主牌] ${c}</option>`);
+                if (p.hand) p.hand.forEach((c, i) => opts += `<option value="main_${i}">[主牌] ${c}</option>`);
                 if (p.split_hand) p.split_hand.forEach((c, i) => opts += `<option value="split_${i}">[拆牌] ${c}</option>`);
                 return opts;
             };
-            let myOpts = buildOptions(me); let allyOpts = buildOptions(ally);
+            
+            let myOpts = buildOptions(me); 
+            let allyOpts = buildOptions(ally);
             if (!myOpts || !allyOpts) { alert('❌ 雙方必須都有手牌才能交換！'); return; }
-            document.getElementById('swap-my-card').innerHTML = myOpts; document.getElementById('swap-ally-card').innerHTML = allyOpts;
-            document.getElementById('swap-menu').classList.remove('hidden');
+            
+            const myCardEl = document.getElementById('swap-my-card');
+            const allyCardEl = document.getElementById('swap-ally-card');
+            if (myCardEl && allyCardEl) {
+                myCardEl.innerHTML = myOpts; 
+                allyCardEl.innerHTML = allyOpts;
+                document.getElementById('swap-menu').classList.remove('hidden');
+            }
         }
+
         function submitSwapRequest() {
-            let myChoice = document.getElementById('swap-my-card').value; let allyChoice = document.getElementById('swap-ally-card').value;
+            let myChoice = document.getElementById('swap-my-card').value; 
+            let allyChoice = document.getElementById('swap-ally-card').value;
             socket.emit('request_swap', { my_choice: myChoice, ally_choice: allyChoice });
             document.getElementById('swap-menu').classList.add('hidden');
         }
+
         function answerSwap(accept) { socket.emit('answer_swap', { accept: accept }); document.getElementById('swap-request-modal').classList.add('hidden'); }
         function sendAnte() { socket.emit('pay_ante'); }
         function sendRaise(amt) { if(amt === undefined) amt = amounts['raise']; socket.emit('raise_bet', {amount: amt}); }
@@ -721,40 +756,68 @@ function setUI(id, html) {
         const icons = ['🍒', '🍋', '🍉', '🔔', '💎', '7️⃣'];
         
         function enterSlot() {
-            document.getElementById('lobby-area').classList.add('hidden');
-            document.getElementById('slot-area').classList.remove('hidden');
-            switchTheme('slot');
+            const lobby = document.getElementById('lobby-area');
+            const slot = document.getElementById('slot-area');
+            if (lobby && slot) {
+                lobby.classList.add('hidden');
+                slot.classList.remove('hidden');
+                // 🟠 防護：確保 switchTheme 存在才呼叫
+                if (typeof switchTheme === 'function') switchTheme('slot');
+            }
         }
 
         function leaveSlot() {
-            document.getElementById('slot-area').classList.add('hidden');
-            document.getElementById('lobby-area').classList.remove('hidden');
-            switchTheme('lobby');
+            const lobby = document.getElementById('lobby-area');
+            const slot = document.getElementById('slot-area');
+            if (lobby && slot) {
+                slot.classList.add('hidden');
+                lobby.classList.remove('hidden');
+                if (typeof switchTheme === 'function') switchTheme('lobby');
+            }
         }
 
         function spinSlot() {
             const btn = document.getElementById('btn-spin');
+            if (!btn || btn.disabled) return; // 🔴 防止重複扣錢
+            
             btn.disabled = true;
-            document.getElementById('slot-result').innerText = "🎰 命運轉動中...";
-            socket.emit('slot_spin'); // 💰 向後端請求真正扣錢
+            const resEl = document.getElementById('slot-result');
+            if (resEl) resEl.innerText = "🎰 命運轉動中...";
+            
+            socket.emit('slot_spin'); 
 
             let count = 0;
             const timer = setInterval(() => {
-                document.getElementById('reel1').innerText = icons[Math.floor(Math.random() * icons.length)];
-                document.getElementById('reel2').innerText = icons[Math.floor(Math.random() * icons.length)];
-                document.getElementById('reel3').innerText = icons[Math.floor(Math.random() * icons.length)];
+                const r1 = document.getElementById('reel1');
+                const r2 = document.getElementById('reel2');
+                const r3 = document.getElementById('reel3');
+                if (r1 && r2 && r3) {
+                    r1.innerText = icons[Math.floor(Math.random() * icons.length)];
+                    r2.innerText = icons[Math.floor(Math.random() * icons.length)];
+                    r3.innerText = icons[Math.floor(Math.random() * icons.length)];
+                }
                 if (++count > 20) clearInterval(timer);
             }, 50);
         }
 
         socket.on('slot_result', d => {
             setTimeout(() => {
-                document.getElementById('reel1').innerText = icons[d.reels[0]];
-                document.getElementById('reel2').innerText = icons[d.reels[1]];
-                document.getElementById('reel3').innerText = icons[d.reels[2]];
-                document.getElementById('slot-result').innerText = d.msg;
-                document.getElementById('btn-spin').disabled = false;
-                if(d.win) playSound('sfx-win');
+                const r1 = document.getElementById('reel1');
+                const r2 = document.getElementById('reel2');
+                const r3 = document.getElementById('reel3');
+                const resEl = document.getElementById('slot-result');
+                const btn = document.getElementById('btn-spin');
+
+                if (r1 && r2 && r3) {
+                    r1.innerText = icons[d.reels[0]];
+                    r2.innerText = icons[d.reels[1]];
+                    r3.innerText = icons[d.reels[2]];
+                }
+                if (resEl) resEl.innerText = d.msg;
+                if (btn) btn.disabled = false;
+                
+                // 🟠 防護：確保 playSound 存在且沒靜音時播放
+                if (d.win && typeof playSound === 'function') playSound('sfx-win');
             }, 1100);
         });
 
