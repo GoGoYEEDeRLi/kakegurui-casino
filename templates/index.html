@@ -422,7 +422,14 @@
 
 <script>
         // 🔴 1. 核心初始化：必須放在最上面！
-        const socket = io(); 
+        const socket = io();
+        let mySid = null;
+        let isMuted = false;
+        let previousChips = {};
+        let currentState = null; 
+        let currentTheme = ''; // 紀錄目前場景
+        
+        let amounts = { 'loan': 1000000, 'spec': 1000000, 'raise': 0, 'h_raise': 1000000, 'bid': 0 };
 
         // 🔴 2. 基礎工具函數 (XSS 防護與 UI 安全更新)
         function esc(s) {
@@ -438,23 +445,26 @@
         // 💰 3. 借貸系統變數與功能
         let currentLoanAmount = 1000000; // 預設 100 萬
 
-        function adjustAmt(type, change) {
+function adjustAmt(type, change) {
             if (type === 'loan') {
-                currentLoanAmount += change;
-                // 防止借款變成負數或低於 100 萬
-                if (currentLoanAmount < 1000000) currentLoanAmount = 1000000; 
+                // ✅ 修改這裡：使用你在 487 行定義的 amounts 物件
+                amounts['loan'] += change;
+                if (amounts['loan'] < 1000000) amounts['loan'] = 1000000; 
                 
-                // 更新畫面顯示 (加上千分位符號)
                 const display = document.getElementById('loan-display');
                 if (display) {
-                    display.innerText = "¥" + currentLoanAmount.toLocaleString();
+                    display.innerText = "¥" + amounts['loan'].toLocaleString();
                 }
             }
         }
 
         function requestLoan() {
-            // 確保發送的是數字
-            socket.emit('request_loan', { amount: currentLoanAmount });
+            // ✅ 修改這裡：同步使用 amounts['loan']
+            socket.emit('request_loan', { amount: amounts['loan'] });
+            
+            const modal = document.getElementById('loan-modal');
+            if(modal) { modal.classList.add('hidden'); }
+        });
             
             // 關閉借貸視窗
             const modal = document.getElementById('loan-modal');
@@ -470,7 +480,6 @@ function setUI(id, html) {
     const el = document.getElementById(id);
     if (el) el.innerHTML = html;
 }
-        const socket = io();
         let mySid = null;
         let isMuted = false;
         let previousChips = {};
@@ -560,7 +569,7 @@ function setUI(id, html) {
         if (gDebt) gDebt.innerText = d.debt.toLocaleString();
         // ----------------------------------
             // 回到大廳時切換回大廳主題
-            switchTheme('lobby');
+    function switchTheme('lobby');
         });
 
         socket.on('joined_room', d => {
