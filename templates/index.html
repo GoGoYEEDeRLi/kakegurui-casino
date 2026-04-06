@@ -868,7 +868,7 @@ function requestLoan() {
         function sendVote(c) { socket.emit('submit_vote', {choice: c}); }
         function sendSpecBet() { socket.emit('place_side_bet', {target: document.getElementById('spec-target').value, amount: amounts['spec']}); }
 
-        // --- 🎰 老虎機前端控制區 ---
+       // --- 🎰 老虎機前端控制區 ---
         const icons = ['🍒', '🍋', '🍉', '🔔', '💎', '7️⃣'];
         
         function enterSlot() {
@@ -877,12 +877,11 @@ function requestLoan() {
             if (lobby && slot) {
                 lobby.classList.add('hidden');
                 slot.classList.remove('hidden');
-                // 🟠 防護：確保 switchTheme 存在才呼叫
                 if (typeof switchTheme === 'function') switchTheme('slot');
             }
         }
 
-// 🚪 離開老虎機
+        // 🚪 離開老虎機
         function leaveSlot() {
             const lobby = document.getElementById('lobby-area');
             const slot = document.getElementById('slot-area');
@@ -893,96 +892,22 @@ function requestLoan() {
             }
         }
 
-        // 🚪 進入賽馬場
-        function enterHorseArea() {
-            document.getElementById('lobby-area').classList.add('hidden');
-            document.getElementById('horse-area').classList.remove('hidden');
-        }
-
-        // 🚪 離開賽馬場
-        function leaveHorseArea() {
-            document.getElementById('horse-area').classList.add('hidden');
-            document.getElementById('lobby-area').classList.remove('hidden');
-        }
-
-        // 💸 送出馬券訂單
-        function placeHorseBet() {
-            const horse = document.getElementById('horse-select').value;
-            const amt = document.getElementById('horse-bet-amount').value;
-            
-            if(!amt || amt <= 0) { 
-                alert("❌ 請輸入有效的下注金額！"); 
-                return; 
-            }
-            
-            // 傳送給後端 app.py 的 place_horse_bet 事件
-            socket.emit('place_horse_bet', { horse: horse, amount: amt });
-            
-            // 清空輸入框
-            document.getElementById('horse-bet-amount').value = '';
-        }
-      // 🚪 進入股市時，自動向伺服器要最新股價
-        function enterStockArea() {
-            document.getElementById('lobby-area').classList.add('hidden');
-            document.getElementById('stock-area').classList.remove('hidden');
-            
-            // ⭐️ 新增這行：進去就敲門要資料
-            socket.emit('get_stock_info'); 
-        }
-
-        // 🚪 離開股市
-        function leaveStockArea() {
-            document.getElementById('stock-area').classList.add('hidden');
-            document.getElementById('lobby-area').classList.remove('hidden');
-        }
-
-        // 📈 買賣股票下單
-        function tradeStock(action) {
-            const stockId = document.getElementById('stock-select').value;
-            const amt = document.getElementById('stock-amount').value;
-            
-            if(!amt || amt <= 0) { 
-                alert("❌ 請輸入有效的交易數量！"); 
-                return; 
-            }
-            
-            // 傳送給後端 app.py 的 trade_stock 事件
-            socket.emit('trade_stock', { action: action, stock_id: stockId, amount: amt });
-        }
-        // 📡 接收最新股價並更新看板
-        socket.on('update_stocks', function(stocks) {
-            let html = '';
-            for (let key in stocks) {
-                // toLocaleString() 可以幫數字加上千位數逗號 (例如 1,000)
-                html += `${key}股 (${stocks[key].name}): <span style="color:#0f0;">¥${stocks[key].price.toLocaleString()}</span><br>`;
-            }
-            document.getElementById('stock-price-board').innerHTML = html;
-        });
-
-        // 📡 接收我的持股數量
-        socket.on('update_portfolio', function(portfolio) {
-            let html = '';
-            let hasStock = false;
-            for (let key in portfolio) {
-                if (portfolio[key] > 0) {
-                    html += `持有 ${key}股: <span style="color:#ff0;">${portfolio[key]} 張</span><br>`;
-                    hasStock = true;
-                }
-            }
-            if (!hasStock) html = '<span style="color:#888;">目前沒有持有任何股票。</span>';
-            document.getElementById('my-portfolio-board').innerHTML = html;
-        });
-        
-        // 🎰 老虎機拉桿
+        // 🎰 老虎機拉桿 (包含視覺動畫防連點)
         function spinSlot() {
             const btn = document.getElementById('btn-spin');
-            if (!btn || btn.disabled) return; // 🔴 防止重複扣錢
-            btn.disabled = true;
-            const resEl = document.getElementById('slot-result');
-            if (resEl) resEl.innerText = "🎰 命運轉動中...";
+            if (!btn || btn.disabled) return; 
+            btn.disabled = true; // 鎖定按鈕防連點
             
+            const resEl = document.getElementById('slot-result');
+            if (resEl) {
+                resEl.innerText = "🎰 命運轉動中...";
+                resEl.style.color = '#fff';
+            }
+            
+            // 發送拉桿訊號給後端
             socket.emit('slot_spin'); 
 
+            // 啟動視覺滾動動畫
             let count = 0;
             const timer = setInterval(() => {
                 const r1 = document.getElementById('reel1');
@@ -997,7 +922,10 @@ function requestLoan() {
             }, 50);
         }
 
+        // 🎰 接收老虎機結果 (配合動畫延遲顯示)
         socket.on('slot_result', d => {
+            console.log("📥 收到老虎機結果:", d);
+            // 等待前端動畫跑完 1.1 秒再顯示真實結果
             setTimeout(() => {
                 const r1 = document.getElementById('reel1');
                 const r2 = document.getElementById('reel2');
@@ -1010,64 +938,30 @@ function requestLoan() {
                     r2.innerText = icons[d.reels[1]];
                     r3.innerText = icons[d.reels[2]];
                 }
-                if (resEl) resEl.innerText = d.msg;
+                if (resEl) {
+                    resEl.innerText = d.msg;
+                    resEl.style.color = d.win ? '#0f0' : '#f55';
+                }
                 if (btn) btn.disabled = false;
                 
-                // 🟠 防護：確保 playSound 存在且沒靜音時播放
+                // 如果中獎且沒靜音，播放音效
                 if (d.win && typeof playSound === 'function') playSound('sfx-win');
             }, 1100);
         });
 
-        socket.on('update_jackpot', d => {
-            const el = document.getElementById('jackpot-display');
-            if (el) el.innerText = '¥' + d.pool.toLocaleString();
-        });
-    
-     // 📡 接收最新獎池金額- 更新
-// 📡 接收最新獎池金額 (防呆防崩潰版)
+        // 📡 接收最新獎池金額 (防呆防崩潰版)
         socket.on('update_jackpot', function(data) {
-            console.log("📥 收到獎池更新包:", data); // 先印出整個包裹看裡面有什麼
+            console.log("📥 收到獎池更新包:", data); 
             
             const jackpotEl = document.getElementById('jackpot-display');
-            
-            // 統一去抓 data.jackpot，並且確保它真的存在才執行加上逗號的動作！
-            if (jackpotEl && data.jackpot !== undefined) {
-                jackpotEl.innerText = "¥" + data.jackpot.toLocaleString();
-            } else if (jackpotEl && data.pool !== undefined) {
-                // 為了防止你後端還是發送 pool，這裡加個雙重保險
-                jackpotEl.innerText = "¥" + data.pool.toLocaleString();
+            if (jackpotEl) {
+                if (data.jackpot !== undefined) {
+                    jackpotEl.innerText = "¥" + data.jackpot.toLocaleString();
+                } else if (data.pool !== undefined) {
+                    jackpotEl.innerText = "¥" + data.pool.toLocaleString();
+                }
             }
         });
-
-        // 🎰 接收老虎機結果
-        socket.on('slot_result', function(data) {
-            console.log("📥 收到老虎機結果:", data);
-            const symbols = ['🍒', '🍋', '🔔', '💎', '7️⃣', '💀'];
-            document.getElementById('reel1').innerText = symbols[data.reels[0]];
-            document.getElementById('reel2').innerText = symbols[data.reels[1]];
-            document.getElementById('reel3').innerText = symbols[data.reels[2]];
-            
-            const resEl = document.getElementById('slot-result');
-            resEl.innerText = data.msg;
-            resEl.style.color = data.win ? '#0f0' : '#f55';
-            
-            // 解鎖按鈕
-            const spinBtn = document.getElementById('btn-spin');
-            if(spinBtn) spinBtn.disabled = false;
-        });
-        // 🎰 發送抽老虎機請求的按鈕綁定函數
-        function spinSlot() {
-            const spinBtn = document.getElementById('btn-spin');
-            if(spinBtn) spinBtn.disabled = true; // 轉動時先鎖定按鈕防連點
-            
-            // 發送給 app.py，名稱必須對應 'slot_spin'
-            socket.emit('slot_spin'); 
-        }
-        // 🔴 XSS 防護函數 (確保名字顯示安全)
-        function esc(s) {
-            if (!s) return "";
-            return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":"&#39;"})[m]);
-        }
     </script>
 </body>
 </html>
