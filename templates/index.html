@@ -456,14 +456,21 @@
         }
 
         // 借錢功能
-        function requestLoan() {
+function requestLoan() {
+            // 🚨 只要按鈕有接通，一定會彈出這個視窗！
+            alert("按鈕線路有通！準備借錢！金額：" + amounts['loan']);
+            
+            console.log("👉 [前端] 準備發送借貸請求！");
+            
+            // 發送給後端
             socket.emit('request_loan', { amount: amounts['loan'] });
+            
+            // 關閉視窗
             const modal = document.getElementById('loan-modal');
             if (modal) { 
                 modal.classList.add('hidden'); 
             }
         }
-
         // 🚪 登入功能 (幫你找回來了！)
         function login() {
             const nameInput = document.getElementById('name-in');
