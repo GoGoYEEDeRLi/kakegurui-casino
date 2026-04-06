@@ -132,24 +132,36 @@ def index():
 # ==========================================
 # 🏫 大廳系統
 # ==========================================
+import uuid
+
 @socketio.on('login')
 def handle_login(data):
-    sid = request.sid
     name = data.get('name', '無名氏')
     token = data.get('token')
+    sid = request.sid  # 取得玩家當前的連線 ID
     
-    if not token or token not in db_players:
-        token = str(uuid.uuid4())
-        db_players[token] = {'name': name, 'chips': 10000000, 'debt': 0, 'recharge': 3}
+    if token and token in db_players:
+        p = db_players[token]
+        p['name'] = name
     else:
-        db_players[token]['name'] = name 
+        token = str(uuid.uuid4())
+        db_players[token] = {
+            'name': name,
+            'chips': 1000000,
+            'debt': 0,
+            'recharge': 3
+        }
+        p = db_players[token]
 
-    sid_map[sid] = {'token': token, 'room': 'lobby'}
-    join_room('lobby')
+    # 🔴 終極關鍵：把這個玩家的連線 ID 跟他的身分證綁在一起！
+    # 如果沒有這行，你後面的借貸、老虎機全部都會因為找不到人而失敗！
+    sid_map[sid] = {'token': token, 'room': None}
     
     emit('login_success', {
-        'token': token, 'name': db_players[token]['name'],
-        'chips': db_players[token]['chips'], 'debt': db_players[token]['debt']
+        'token': token, 
+        'name': p['name'], 
+        'chips': p['chips'], 
+        'debt': p['debt']
     })
 
 @socketio.on('join_game_room')
