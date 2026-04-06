@@ -962,6 +962,77 @@ function requestLoan() {
                 }
             }
         });
+    // ==========================================
+        // 🐎 賽馬場前端功能 (找回來了！)
+        // ==========================================
+        function enterHorseArea() {
+            document.getElementById('lobby-area').classList.add('hidden');
+            document.getElementById('horse-area').classList.remove('hidden');
+        }
+
+        function leaveHorseArea() {
+            document.getElementById('horse-area').classList.add('hidden');
+            document.getElementById('lobby-area').classList.remove('hidden');
+        }
+
+        function placeHorseBet() {
+            const horse = document.getElementById('horse-select').value;
+            const amt = document.getElementById('horse-bet-amount').value;
+            
+            if(!amt || amt <= 0) { 
+                alert("❌ 請輸入有效的下注金額！"); 
+                return; 
+            }
+            socket.emit('place_horse_bet', { horse: horse, amount: amt });
+            document.getElementById('horse-bet-amount').value = '';
+        }
+
+        // ==========================================
+        // 📈 股市前端功能 (找回來了！)
+        // ==========================================
+        function enterStockArea() {
+            document.getElementById('lobby-area').classList.add('hidden');
+            document.getElementById('stock-area').classList.remove('hidden');
+            socket.emit('get_stock_info'); 
+        }
+
+        function leaveStockArea() {
+            document.getElementById('stock-area').classList.add('hidden');
+            document.getElementById('lobby-area').classList.remove('hidden');
+        }
+
+        function tradeStock(action) {
+            const stockId = document.getElementById('stock-select').value;
+            const amt = document.getElementById('stock-amount').value;
+            if(!amt || amt <= 0) { 
+                alert("❌ 請輸入有效的交易數量！"); 
+                return; 
+            }
+            socket.emit('trade_stock', { action: action, stock_id: stockId, amount: amt });
+        }
+
+        socket.on('update_stocks', function(stocks) {
+            let html = '';
+            for (let key in stocks) {
+                html += `${key}股 (${stocks[key].name}): <span style="color:#0f0;">¥${stocks[key].price.toLocaleString()}</span><br>`;
+            }
+            const board = document.getElementById('stock-price-board');
+            if (board) board.innerHTML = html;
+        });
+
+        socket.on('update_portfolio', function(portfolio) {
+            let html = '';
+            let hasStock = false;
+            for (let key in portfolio) {
+                if (portfolio[key] > 0) {
+                    html += `持有 ${key}股: <span style="color:#ff0;">${portfolio[key]} 張</span><br>`;
+                    hasStock = true;
+                }
+            }
+            if (!hasStock) html = '<span style="color:#888;">目前沒有持有任何股票。</span>';
+            const myBoard = document.getElementById('my-portfolio-board');
+            if (myBoard) myBoard.innerHTML = html;
+        });
     </script>
 </body>
 </html>
