@@ -809,7 +809,6 @@ function requestLoan() {
         }
         function enterRoom(roomId) { socket.emit('join_game_room', {room: roomId}); }
         function returnToLobby() { if(confirm("確定要退回大廳嗎？(視為放棄該局遊戲)")) socket.emit('return_to_lobby'); }
-        function requestLoan() { socket.emit('recharge', {amount: amounts['loan']}); }
         
         function startCurrentGame() {
             if (currentState.type === 'blackjack') socket.emit('start_game');
