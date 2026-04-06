@@ -213,7 +213,7 @@ def handle_login(data):
         token = str(uuid.uuid4())
         db_players[token] = {
             'name': name,
-            'chips': 1000000,  # 🎁 新手送 100 萬
+            'chips': 10000000,  # 🎁 新手送 100 萬
             'debt': 0
         }
         p = db_players[token]
