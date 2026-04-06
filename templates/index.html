@@ -1024,13 +1024,18 @@ function requestLoan() {
         });
     
      // 📡 接收最新獎池金額- 更新
-// 📡 接收最新獎池金額
+// 📡 接收最新獎池金額 (防呆防崩潰版)
         socket.on('update_jackpot', function(data) {
-            console.log("📥 收到獎池更新:", data.jackpot); // 雷達監控
+            console.log("📥 收到獎池更新包:", data); // 先印出整個包裹看裡面有什麼
             
             const jackpotEl = document.getElementById('jackpot-display');
+            
+            // 統一去抓 data.jackpot，並且確保它真的存在才執行加上逗號的動作！
             if (jackpotEl && data.jackpot !== undefined) {
                 jackpotEl.innerText = "¥" + data.jackpot.toLocaleString();
+            } else if (jackpotEl && data.pool !== undefined) {
+                // 為了防止你後端還是發送 pool，這裡加個雙重保險
+                jackpotEl.innerText = "¥" + data.pool.toLocaleString();
             }
         });
 
