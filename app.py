@@ -3,6 +3,8 @@ from flask_socketio import SocketIO, emit, join_room, leave_room
 import random
 import time
 import uuid
+import json
+import os
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'kakegurui_secret'
@@ -28,9 +30,34 @@ stocks = {
     'D': {'name': '地下賭場集團', 'price': 2000},
     'E': {'name': '夢子概念股', 'price': 100}
 }
-# 🌍 全域玩家錢包系統
-db_players = {}   
+# 📂 定義存檔檔案的名稱
+DATA_FILE = 'players_data.json'
+
+# 📥 讀取存檔的函數 (伺服器啟動時執行)
+def load_players():
+    if os.path.exists(DATA_FILE):
+        try:
+            with open(DATA_FILE, 'r', encoding='utf-8') as f:
+                return json.load(f)
+        except Exception as e:
+            print(f"讀取存檔失敗: {e}")
+            return {}
+    return {}
+
+# 💾 儲存檔案的函數 (玩家錢包變動時執行)
+def save_players():
+    try:
+        with open(DATA_FILE, 'w', encoding='utf-8') as f:
+            # ensure_ascii=False 確保中文名字不會變成亂碼
+            json.dump(db_players, f, ensure_ascii=False, indent=4)
+    except Exception as e:
+        print(f"存檔失敗: {e}")
+
+# ==========================================
+# 🌍 替換原本的 db_players = {}
+db_players = load_players() 
 sid_map = {}      
+# ==========================================     
 
 # 🎰 全域老虎機彩金池
 jackpot_pool = 10000000 
@@ -68,7 +95,7 @@ def handle_loan(data):
     # 錢包入帳
     p['chips'] += amt
     p['debt'] += amt
-    
+    save_players()
     print(f"✅ [系統] {p['name']} 成功借款 {amt}，最新餘額: {p['chips']}")
     
     # 更新畫面與廣播
@@ -179,7 +206,7 @@ def handle_login(data):
 
     # 🔴 2. 絕對不能漏掉的一行：綁定連線 ID 與身分證！
     sid_map[sid] = {'token': token, 'room': None}
-    
+    save_players()
     # 3. 發送最新資料給前端
     emit('login_success', {'token': token, 'name': p['name'], 'chips': p['chips'], 'debt': p['debt']})
     socketio.emit('chat_msg', {'name': '📢 系統', 'msg': f"{p['name']} 進入了賭場..."}, broadcast=True)
