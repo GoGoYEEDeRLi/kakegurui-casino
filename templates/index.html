@@ -1018,16 +1018,19 @@
         });
     
      // 📡 接收最新獎池金額- 更新
+// 📡 接收最新獎池金額
         socket.on('update_jackpot', function(data) {
+            console.log("📥 收到獎池更新:", data.jackpot); // 雷達監控
+            
             const jackpotEl = document.getElementById('jackpot-display');
-            if (jackpotEl) {
-                // 收到後端傳來的 data.jackpot，更新畫面
+            if (jackpotEl && data.jackpot !== undefined) {
                 jackpotEl.innerText = "¥" + data.jackpot.toLocaleString();
             }
         });
 
-        // 🎰 接收老虎機轉動結果
+        // 🎰 接收老虎機結果
         socket.on('slot_result', function(data) {
+            console.log("📥 收到老虎機結果:", data);
             const symbols = ['🍒', '🍋', '🔔', '💎', '7️⃣', '💀'];
             document.getElementById('reel1').innerText = symbols[data.reels[0]];
             document.getElementById('reel2').innerText = symbols[data.reels[1]];
@@ -1037,11 +1040,10 @@
             resEl.innerText = data.msg;
             resEl.style.color = data.win ? '#0f0' : '#f55';
             
-            // 如果你之前有設定鎖定按鈕，記得解鎖
+            // 解鎖按鈕
             const spinBtn = document.getElementById('btn-spin');
             if(spinBtn) spinBtn.disabled = false;
         });
-
         // 🎰 發送抽老虎機請求的按鈕綁定函數
         function spinSlot() {
             const spinBtn = document.getElementById('btn-spin');
