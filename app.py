@@ -135,7 +135,7 @@ def handle_slot_spin():
 
     # 💸 扣錢並注入 10% 到彩金池
     p['chips'] -= cost
-    jackpot_pool += int(cost * 0.1)
+    jackpot_pool += int(cost * 1)
     print(f"🎰 [老虎機] 扣款後餘額: {p['chips']} | 最新獎池: {jackpot_pool}")
 
 # 🎲 決定結果 (隨機抽出 3 個 0~5 的數字)
