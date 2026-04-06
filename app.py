@@ -200,6 +200,9 @@ import uuid
 # ==========================================
 @socketio.on('login')
 def handle_login(data):
+    # 🔴 關鍵 1：宣告我們要讀取全域的老虎機獎池！
+    global jackpot_pool 
+
     sid = request.sid
     name = data.get('name', '無名氏')
     token = data.get('token')
@@ -215,19 +218,22 @@ def handle_login(data):
         token = str(uuid.uuid4())
         db_players[token] = {
             'name': name,
-            'chips': 10000000,  # 🎁 新手送 100 萬
+            'chips': 10000000,  # 🎁 新手送 1000 萬 (我看你把新手金調高了，很讚！)
             'debt': 0
         }
         p = db_players[token]
         print(f"✨ [系統] 新玩家加入: {name}")
 
-    # 🔴 2. 絕對不能漏掉的一行：綁定連線 ID 與身分證！
+    # 2. 絕對不能漏掉的一行：綁定連線 ID 與身分證！
     sid_map[sid] = {'token': token, 'room': None}
     save_players()
+    
+    # 🔴 關鍵 2：玩家一登入，立刻把最新的彩金池發給他！
+    emit('update_jackpot', {'jackpot': jackpot_pool})
+
     # 3. 發送最新資料給前端
     emit('login_success', {'token': token, 'name': p['name'], 'chips': p['chips'], 'debt': p['debt']})
     socketio.emit('chat_msg', {'name': '📢 系統', 'msg': f"{p['name']} 進入了賭場..."}, broadcast=True)
-
 @socketio.on('join_game_room')
 def join_game_room(data):
     sid = request.sid
