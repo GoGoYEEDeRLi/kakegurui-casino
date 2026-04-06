@@ -138,15 +138,16 @@ def handle_slot_spin():
     jackpot_pool += int(cost * 0.1)
     print(f"🎰 [老虎機] 扣款後餘額: {p['chips']} | 最新獎池: {jackpot_pool}")
 
-    # 🎲 決定結果 (隨機抽出 3 個 0~5 的數字)
+# 🎲 決定結果 (隨機抽出 3 個 0~5 的數字)
     r = [random.randint(0, 5) for _ in range(3)]
     is_win = (r[0] == r[1] == r[2])  # 三個數字一樣就中獎
     win_amt = 0
     
     if is_win:
-        win_amt = int(jackpot_pool * 0.8) # 贏走獎池的 80%
+        win_amt = jackpot_pool            # 💰 玩家贏走目前的「全部獎金」！
         p['chips'] += win_amt
-        jackpot_pool -= win_amt
+        jackpot_pool = 10000000           # 🔴 滿足願望：中獎後獎金池直接「重置回 1000 萬」！
+        
         msg = f"🎊 大獎！{p['name']} 贏得了 ¥{win_amt:,}！"
         socketio.emit('chat_msg', {'name': '🎰 廣播', 'msg': msg}, broadcast=True)
         print(f"🎰 [老虎機] 中大獎！獲得: {win_amt} | 最終餘額: {p['chips']}")
