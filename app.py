@@ -44,21 +44,36 @@ games = {
         'current_bids': {}, 'highest_bid': 0
     }
 }
+# ==========================================
+# 💰 借貸系統
+# ==========================================
 @socketio.on('request_loan')
 def handle_loan(data):
     sid = request.sid
     tok = sid_map.get(sid, {}).get('token')
     p = db_players.get(tok)
-    if not p: return
 
-    amt = int(data.get('amount', 1000000))
+    # 🚨 防呆：如果身分遺失，不再靜默死機，直接把錯誤傳到前端聊天室！
+    if not p:
+        print(f"❌ [錯誤] 找不到玩家資料！SID: {sid}, Token: {tok}")
+        emit('chat_msg', {'name': '系統', 'msg': '❌ 身分驗證失效，請重新整理網頁再登入一次！'})
+        return
+
+    # 讀取金額
+    try:
+        amt = int(data.get('amount', 1000000))
+    except:
+        amt = 1000000
+
+    # 錢包入帳
     p['chips'] += amt
     p['debt'] += amt
     
-    # 🔴 關鍵：這行會把最新的錢傳回前端，觸發你剛寫好的「同步左上角資訊」
+    print(f"✅ [系統] {p['name']} 成功借款 {amt}，最新餘額: {p['chips']}")
+    
+    # 更新畫面與廣播
     emit('login_success', {'token': tok, 'name': p['name'], 'chips': p['chips'], 'debt': p['debt']})
-    # 給個聊天室通知，增加儀式感
-    socketio.emit('chat_msg', {'name': '💸 債務通知', 'msg': f"{p['name']} 簽下了 ¥{amt:,} 的借據，祝你好運..."}, broadcast=True)
+    socketio.emit('chat_msg', {'name': '💸 債務通知', 'msg': f"{p['name']} 簽下了 ¥{amt:,} 的借據！"}, broadcast=True)
 # ==========================================
 # 🎰 老虎機核心邏輯 (對接 db_players)
 # ==========================================
@@ -134,35 +149,40 @@ def index():
 # ==========================================
 import uuid
 
+import uuid
+
+# ==========================================
+# 🚪 登入與身分綁定系統
+# ==========================================
 @socketio.on('login')
 def handle_login(data):
+    sid = request.sid
     name = data.get('name', '無名氏')
     token = data.get('token')
-    sid = request.sid  # 取得玩家當前的連線 ID
-    
+
+    print(f"📥 [系統] 收到登入請求 - 名字: {name}, Token: {token}")
+
+    # 1. 確認是老玩家還是新玩家
     if token and token in db_players:
         p = db_players[token]
         p['name'] = name
+        print(f"✅ [系統] 老玩家回歸: {name}")
     else:
         token = str(uuid.uuid4())
         db_players[token] = {
             'name': name,
-            'chips': 1000000,
-            'debt': 0,
-            'recharge': 3
+            'chips': 1000000,  # 🎁 新手送 100 萬
+            'debt': 0
         }
         p = db_players[token]
+        print(f"✨ [系統] 新玩家加入: {name}")
 
-    # 🔴 終極關鍵：把這個玩家的連線 ID 跟他的身分證綁在一起！
-    # 如果沒有這行，你後面的借貸、老虎機全部都會因為找不到人而失敗！
+    # 🔴 2. 絕對不能漏掉的一行：綁定連線 ID 與身分證！
     sid_map[sid] = {'token': token, 'room': None}
     
-    emit('login_success', {
-        'token': token, 
-        'name': p['name'], 
-        'chips': p['chips'], 
-        'debt': p['debt']
-    })
+    # 3. 發送最新資料給前端
+    emit('login_success', {'token': token, 'name': p['name'], 'chips': p['chips'], 'debt': p['debt']})
+    socketio.emit('chat_msg', {'name': '📢 系統', 'msg': f"{p['name']} 進入了賭場..."}, broadcast=True)
 
 @socketio.on('join_game_room')
 def join_game_room(data):
