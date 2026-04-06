@@ -105,48 +105,63 @@ def handle_loan(data):
 # 🎰 老虎機核心邏輯 (對接 db_players)
 # ==========================================
 
+# ==========================================
+# 🎰 老虎機核心邏輯
+# ==========================================
 @socketio.on('slot_spin')
 def handle_slot_spin():
-    global jackpot_pool
+    # 🔴 關鍵 1：必須宣告 global 才能修改外面的彩金池！
+    global jackpot_pool 
+    
     sid = request.sid
     tok = sid_map.get(sid, {}).get('token')
     p = db_players.get(tok)
     
-    if not p: return
-    
-    cost = 1000000 # 100 萬一抽
-    if p.get('chips', 0) < cost:
-        emit('chat_msg', {'name': '系統', 'msg': '❌ 籌碼不足 100 萬！'})
+    # 檢查身分
+    if not p:
+        emit('chat_msg', {'name': '系統', 'msg': '❌ 身分驗證失效，請重新登入！'})
         return
+        
+    cost = 1000000 # 100 萬一次
+    
+    # 檢查餘額
+    if p.get('chips', 0) < cost:
+        emit('chat_msg', {'name': '系統', 'msg': '❌ 籌碼不足 100 萬，快去借錢吧！'})
+        return
+
+    print(f"🎰 [老虎機] {p['name']} 開始拉霸！原本餘額: {p['chips']}")
 
     # 💸 扣錢並注入 10% 到彩金池
     p['chips'] -= cost
     jackpot_pool += int(cost * 0.1)
-    
-    # 🎲 決定結果 (0-5)
+    print(f"🎰 [老虎機] 扣款後餘額: {p['chips']} | 最新獎池: {jackpot_pool}")
+
+    # 🎲 決定結果 (隨機抽出 3 個 0~5 的數字)
     r = [random.randint(0, 5) for _ in range(3)]
-    is_win = (r[0] == r[1] == r[2])
+    is_win = (r[0] == r[1] == r[2])  # 三個數字一樣就中獎
     win_amt = 0
     
     if is_win:
-        win_amt = int(jackpot_pool * 0.8) # 贏走 80%
+        win_amt = int(jackpot_pool * 0.8) # 贏走獎池的 80%
         p['chips'] += win_amt
         jackpot_pool -= win_amt
         msg = f"🎊 大獎！{p['name']} 贏得了 ¥{win_amt:,}！"
         socketio.emit('chat_msg', {'name': '🎰 廣播', 'msg': msg}, broadcast=True)
+        print(f"🎰 [老虎機] 中大獎！獲得: {win_amt} | 最終餘額: {p['chips']}")
     else:
-        msg = "沒中獎，加油！"
+        msg = "沒中獎，再接再厲！"
 
-    # 📢 1. 更新前端的個人錢包 (讓你立刻看到錢被扣)
-    emit('login_success', {'token': tok, 'name': p['name'], 'chips': p['chips'], 'debt': p['debt']})
-    
-    # 📢 2. 更新前端的老虎機畫面與最新獎池
+    # 🔴 關鍵 2：資料變動了，立刻存檔！
+    save_players()
+
+    # 📢 1. 發送老虎機轉動結果
     emit('slot_result', {'reels': r, 'win': is_win, 'msg': msg})
     
-    # 📢 3. 全服廣播最新獎池 (統一使用 'jackpot' 作為 key)
+    # 📢 2. 同步玩家錢包餘額 (讓左上角的錢即時減少)
+    emit('login_success', {'token': tok, 'name': p['name'], 'chips': p['chips'], 'debt': p['debt']})
+    
+    # 📢 3. 全服廣播最新獎池 (統一使用 'jackpot' 作為鍵值)
     socketio.emit('update_jackpot', {'jackpot': jackpot_pool}, broadcast=True)
-    emit('login_success', {'token': tok, 'name': p['name'], 'chips': p['chips'], 'debt': p['debt']
-    })
 
 def calculate_hand(hand):
     val = sum(VALUES[card[1:]] for card in hand)
